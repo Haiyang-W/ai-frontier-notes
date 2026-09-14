@@ -6,15 +6,15 @@
 
 ## 0. 记号约定
 
-- 状态 $s_t$ ，动作 $a_t$ ，奖励 $r_t$ ，折扣 $\gamma \in [0,1]$
-- 策略 $\pi_\theta(a|s)$ ：参数为 $\theta$ ，输出动作分布
-- 轨迹 $\tau = (s_0, a_0, r_0, s_1, a_1, \dots)$
-- 回报 $G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k}$
-- 状态值函数 $V^\pi(s) = \mathbb{E}_\pi[G_t \mid s_t=s]$
-- 动作值函数 $Q^\pi(s,a) = \mathbb{E}_\pi[G_t \mid s_t=s, a_t=a]$
+- 状态 $`s_t`$ ，动作 $`a_t`$ ，奖励 $`r_t`$ ，折扣 $\gamma \in [0,1]$
+- 策略 $`\pi_\theta(a|s)`$ ：参数为 $\theta$ ，输出动作分布
+- 轨迹 $`\tau = (s_0, a_0, r_0, s_1, a_1, \dots)`$
+- 回报 $`G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k}`$
+- 状态值函数 $`V^\pi(s) = \mathbb{E}_\pi[G_t \mid s_t=s]`$
+- 动作值函数 $`Q^\pi(s,a) = \mathbb{E}_\pi[G_t \mid s_t=s, a_t=a]`$
 - 优势函数 $A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)$
 
-在 LLM 场景下： $s_t$ 是已生成的 prompt + tokens， $a_t$ 是下一个 token， $r_t$ 通常只在序列末尾由 Reward Model 给出。
+在 LLM 场景下： $`s_t`$ 是已生成的 prompt + tokens， $`a_t`$ 是下一个 token， $`r_t`$ 通常只在序列末尾由 Reward Model 给出。
 
 ---
 
@@ -56,10 +56,10 @@ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)]
 J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \sum_{\tau} p_\theta(\tau) \, R(\tau)
 ```
 
-> 如果你看到的是 $\int p_\theta(\tau) R(\tau) d\tau$ ，那只是连续版本，意思一样。下面我都用 $\sum$ 写，更直观。
+> 如果你看到的是 $`\int p_\theta(\tau) R(\tau) d\tau`$ ，那只是连续版本，意思一样。下面我都用 $\sum$ 写，更直观。
 
 记号解释：
-- $p_\theta(\tau)$ ：在策略 $\pi_\theta$ 下，**采样到轨迹 $\tau$ 的概率**
+- $`p_\theta(\tau)`$ ：在策略 $`\pi_\theta`$ 下，**采样到轨迹 $\tau$ 的概率**
 - $R(\tau)$ ：这条轨迹的总回报（一个数）
 - $J(\theta)$ ：所有可能轨迹的"概率 × 回报"加起来
 
@@ -74,7 +74,7 @@ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \sum_{\tau} p_\theta(\t
 为什么 $R(\tau)$ 不动？因为 **奖励是环境给的，不依赖参数 $\theta$**。 $\theta$ 改变的只是「采样到 $\tau$ 的概率」，而不是「这条 $\tau$ 值多少分」。
 
 > **为什么我们一定要用「采样取平均」来算这个梯度？**
-> 因为轨迹空间是天文数字级别的——每一步动作都有多种选择，组合起来 $\tau$ 的数量指数爆炸，**穷举求和 $\sum_\tau$ 根本不可能**。唯一实际可行的办法是**蒙特卡洛估计（Monte Carlo estimation）**：如果求和能写成期望 $\mathbb{E}_{x \sim p}[f(x)]$ 的形式，我们只需按 $p$ 采样 $N$ 条轨迹，对 $f(x_i)$ 取算术平均即可近似：
+> 因为轨迹空间是天文数字级别的——每一步动作都有多种选择，组合起来 $\tau$ 的数量指数爆炸，**穷举求和 $`\sum_\tau`$ 根本不可能**。唯一实际可行的办法是**蒙特卡洛估计（Monte Carlo estimation）**：如果求和能写成期望 $`\mathbb{E}_{x \sim p}[f(x)]`$ 的形式，我们只需按 $p$ 采样 $N$ 条轨迹，对 $`f(x_i)`$ 取算术平均即可近似：
 >
 > ```math
 > \mathbb{E}_{x \sim p}[f(x)] \approx \frac{1}{N}\sum_{i=1}^{N} f(x_i), \quad x_i \sim p
@@ -82,12 +82,12 @@ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \sum_{\tau} p_\theta(\t
 >
 > 采样频率本身就自动替代了概率权重 $p(x)$，不需要显式算出每条轨迹的概率值。所以整个 REINFORCE 推导的动机就是：**把梯度变成期望，好让我们能采样估计**。
 
-**遇到的麻烦**： $\nabla_\theta p_\theta(\tau)$ 不再是一个「概率 × 数值」的形式（前面那个因子不是概率了）。我们无法用「采样取平均」来估计它。
+**遇到的麻烦**： $`\nabla_\theta p_\theta(\tau)`$ 不再是一个「概率 × 数值」的形式（前面那个因子不是概率了）。我们无法用「采样取平均」来估计它。
 
 > **为什么"不是概率"就不能采样？**
-> 蒙特卡洛估计的标准长相是 $\mathbb{E}_{x\sim p}[f(x)] = \sum_x p(x) f(x)$ ，要求前面的加权因子 $p(x)$ 是**合法概率**（非负、和为 1）。这样按 $p$ 采样 $N$ 个 $x_i$ ，**采样频率本身就替你完成了"乘以 $p(x)$ "**，对 $f(x_i)$ 取平均即可。
+> 蒙特卡洛估计的标准长相是 $`\mathbb{E}_{x\sim p}[f(x)] = \sum_x p(x) f(x)`$ ，要求前面的加权因子 $p(x)$ 是**合法概率**（非负、和为 1）。这样按 $p$ 采样 $N$ 个 $`x_i`$ ，**采样频率本身就替你完成了"乘以 $p(x)$ "**，对 $`f(x_i)`$ 取平均即可。
 >
-> 而 $\nabla_\theta p_\theta(\tau)$ 是个**梯度**：可以为负，且 $\sum_\tau \nabla_\theta p_\theta(\tau) = \nabla_\theta \sum_\tau p_\theta(\tau) = \nabla_\theta 1 = 0$ ——根本不是分布，没法"按它采样"。
+> 而 $`\nabla_\theta p_\theta(\tau)`$ 是个**梯度**：可以为负，且 $`\sum_\tau \nabla_\theta p_\theta(\tau) = \nabla_\theta \sum_\tau p_\theta(\tau) = \nabla_\theta 1 = 0`$ ——根本不是分布，没法"按它采样"。
 >
 > 所以我们要想办法把它**变回期望形式**。
 
@@ -105,7 +105,7 @@ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \sum_{\tau} p_\theta(\t
 \nabla_\theta p_\theta(\tau) = p_\theta(\tau) \cdot \nabla_\theta \log p_\theta(\tau)
 ```
 
-> 看一眼就明白：左边一个梯度，右边等价地写成「**概率 × log 的梯度**」。变魔术之处在于：**右边把概率 $p_\theta$ 又请回来了**。
+> 看一眼就明白：左边一个梯度，右边等价地写成「**概率 × log 的梯度**」。变魔术之处在于：**右边把概率 $`p_\theta`$ 又请回来了**。
 
 代回 Step 2：
 
@@ -113,7 +113,7 @@ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \sum_{\tau} p_\theta(\t
 \nabla_\theta J(\theta) = \sum_{\tau} p_\theta(\tau) \cdot \nabla_\theta \log p_\theta(\tau) \cdot R(\tau)
 ```
 
-🎉 现在 $p_\theta(\tau)$ 又是一个概率了！这正好是期望的形式：
+🎉 现在 $`p_\theta(\tau)`$ 又是一个概率了！这正好是期望的形式：
 
 ```math
 \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[\nabla_\theta \log p_\theta(\tau) \cdot R(\tau)\right]
@@ -121,16 +121,16 @@ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \sum_{\tau} p_\theta(\t
 
 **这一步的意义**：我们已经成功把"梯度"变成"期望"。**采样几条轨迹就能近似它**。
 
-#### Step 4：把 $\log p_\theta(\tau)$ 拆开
+#### Step 4：把 $`\log p_\theta(\tau)`$ 拆开
 
-现在唯一的疑问是： $\log p_\theta(\tau)$ 到底是个啥？我们要把它具体写出来。
+现在唯一的疑问是： $`\log p_\theta(\tau)`$ 到底是个啥？我们要把它具体写出来。
 
-一条轨迹 $\tau = (s_0, a_0, s_1, a_1, \dots, s_T)$ 是按这样生成的：
+一条轨迹 $`\tau = (s_0, a_0, s_1, a_1, \dots, s_T)`$ 是按这样生成的：
 
-1. 环境给个初始状态 $s_0$ （概率 $\rho_0(s_0)$ ）
-2. 策略选动作 $a_0$ （概率 $\pi_\theta(a_0|s_0)$ ）
-3. 环境转移到 $s_1$ （概率 $P(s_1|s_0,a_0)$ ）
-4. 策略选动作 $a_1$ （概率 $\pi_\theta(a_1|s_1)$ ）
+1. 环境给个初始状态 $`s_0`$ （概率 $`\rho_0(s_0)`$ ）
+2. 策略选动作 $`a_0`$ （概率 $`\pi_\theta(a_0|s_0)`$ ）
+3. 环境转移到 $`s_1`$ （概率 $`P(s_1|s_0,a_0)`$ ）
+4. 策略选动作 $`a_1`$ （概率 $`\pi_\theta(a_1|s_1)`$ ）
 5. ……
 
 所有事件**独立**地连起来（马尔可夫性），所以概率是连乘：
@@ -161,17 +161,17 @@ p_\theta(\tau) = \rho_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t|s_t) \cdot P(s_{t+
 \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\Big[ \underbrace{\sum_t \nabla_\theta \log \pi_\theta(a_t|s_t)}_{\text{方向：让这些动作更可能发生}} \cdot \underbrace{R(\tau)}_{\text{打分：决定走多远、朝哪边}} \Big]
 ```
 
-✅ 这就是策略梯度的**最朴素形式**（ $\Psi_t = R(\tau)$ ），叫做 **REINFORCE**。
+✅ 这就是策略梯度的**最朴素形式**（ $`\Psi_t = R(\tau)`$ ），叫做 **REINFORCE**。
 
 > **🐕 直观理解：试错 + 强化**
 >
-> - $\nabla_\theta \log \pi_\theta(a_t|s_t)$ 是参数空间里的**指南针**——"想让这个动作更常出现， $\theta$ 该往哪挪"，与好坏无关。
-> - $R(\tau)$ 是环境给的**标量打分**： $R>0$ 顺着指南针走（强化）， $R<0$ 逆着走（抑制）， $|R|$ 越大步子越大。
+> - $`\nabla_\theta \log \pi_\theta(a_t|s_t)`$ 是参数空间里的**指南针**——"想让这个动作更常出现， $\theta$ 该往哪挪"，与好坏无关。
+> - $R(\tau)$ 是环境给的**标量打分**： $R\gt 0$ 顺着指南针走（强化）， $R\lt 0$ 逆着走（抑制）， $|R|$ 越大步子越大。
 > - 期望 $`\mathbb{E}_{\tau\sim\pi_\theta}`$ 表示**用当前策略真的跑几把**，再按得分调整自己。
 >
 > 一句话：**试着做 → 看分数 → 好的多复制、坏的少复制**（训狗式学习）。
 >
-> 也可看作**加权 MLE**：普通监督学习 $\nabla \log p(\text{data})$ 是无差别模仿；策略梯度是**自己生成数据、按 reward 加权地模仿自己**——这正是 RLHF 能 work 的本质。
+> 也可看作**加权 MLE**：普通监督学习 $`\nabla \log p(\text{data})`$ 是无差别模仿；策略梯度是**自己生成数据、按 reward 加权地模仿自己**——这正是 RLHF 能 work 的本质。
 >
 > **MLE（Maximum Likelihood Estimation，最大似然估计）的非梯度形式**：
 >
@@ -179,7 +179,7 @@ p_\theta(\tau) = \rho_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t|s_t) \cdot P(s_{t+
 > \theta^* = \arg\max_\theta \prod_{i=1}^{N} p_\theta(x_i) = \arg\max_\theta \sum_{i=1}^{N} \log p_\theta(x_i)
 > ```
 >
-> 一句话：找一组参数 $\theta$，使得观测到的数据在模型下的联合概率最大。取 log 把连乘变求和（不影响 argmax），对应到策略/语言模型场景就是 $\arg\max_\theta \sum_t \log \pi_\theta(a_t|s_t)$。表格里的梯度形式正是对这个目标求导后的结果。
+> 一句话：找一组参数 $\theta$，使得观测到的数据在模型下的联合概率最大。取 log 把连乘变求和（不影响 argmax），对应到策略/语言模型场景就是 $`\arg\max_\theta \sum_t \log \pi_\theta(a_t|s_t)`$。表格里的梯度形式正是对这个目标求导后的结果。
 >
 > **💡 Insight：为什么概率要取 log？**
 >
@@ -191,15 +191,15 @@ p_\theta(\tau) = \rho_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t|s_t) \cdot P(s_{t+
 >
 > | | 梯度形式 | 数据来源 | 权重 |
 > |---|---|---|---|
-> | 监督学习 (MLE) | $\nabla_\theta \sum_t \log \pi_\theta(a_t\mid s_t)$ | 外部标注数据 | 所有样本**权重相等** (=1) |
-> | 策略梯度 (REINFORCE) | $\nabla_\theta \sum_t \log \pi_\theta(a_t\mid s_t) \cdot R(\tau)$ | **自己采样**的轨迹 | 按 reward **加权** |
-> | RLHF | $\nabla_\theta \sum_t \log \pi_\theta(a_t\mid s_t) \cdot r_\phi(\text{response})$ | 模型自己生成的回答 | 按 **reward model 打分**加权 |
+> | 监督学习 (MLE) | $`\nabla_\theta \sum_t \log \pi_\theta(a_t\mid s_t)`$ | 外部标注数据 | 所有样本**权重相等** (=1) |
+> | 策略梯度 (REINFORCE) | $`\nabla_\theta \sum_t \log \pi_\theta(a_t\mid s_t) \cdot R(\tau)`$ | **自己采样**的轨迹 | 按 reward **加权** |
+> | RLHF | $`\nabla_\theta \sum_t \log \pi_\theta(a_t\mid s_t) \cdot r_\phi(\text{response})`$ | 模型自己生成的回答 | 按 **reward model 打分**加权 |
 >
 > 关键区别只有两处：
 > - **数据从哪来**：MLE 模仿人类标注；策略梯度/RLHF 模仿自己（on-policy 生成）
 > - **要不要加权**：MLE 无差别全抄；策略梯度/RLHF 只强化"得分高"的那些输出
 >
-> 所以 RLHF 的本质就是：让模型**自己说一堆回答 → reward model 打分 → 高分的做更多、低分的做更少**。形式上和 REINFORCE 一模一样，只是 $R(\tau)$ 换成了一个学出来的 reward model $r_\phi$。这也解释了为什么 RLHF 能让模型"超越"监督数据——它不被标注上限卡住，而是在自己的输出空间里做**择优放大**。
+> 所以 RLHF 的本质就是：让模型**自己说一堆回答 → reward model 打分 → 高分的做更多、低分的做更少**。形式上和 REINFORCE 一模一样，只是 $R(\tau)$ 换成了一个学出来的 reward model $`r_\phi`$。这也解释了为什么 RLHF 能让模型"超越"监督数据——它不被标注上限卡住，而是在自己的输出空间里做**择优放大**。
 
 **怎么用？** 采样 $N$ 条轨迹 $`\{\tau^{(i)}\}_{i=1}^N`$ ，估计：
 
@@ -207,14 +207,16 @@ p_\theta(\tau) = \rho_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t|s_t) \cdot P(s_{t+
 \widehat{\nabla J}(\theta) \approx \frac{1}{N}\sum_{i=1}^N \sum_t \nabla_\theta \log \pi_\theta(a_t^{(i)}|s_t^{(i)}) \cdot R(\tau^{(i)})
 ```
 
-这就能拿去做梯度上升了： $\theta \leftarrow \theta + \alpha \cdot \widehat{\nabla J}(\theta)$ （ $\widehat{\nabla J}$ 本身就是和 $\theta$ 同形状的向量）。
+这就能拿去做梯度上升了： $`\theta \leftarrow \theta + \alpha \cdot \widehat{\nabla J}(\theta)`$ （ $`\widehat{\nabla J}`$ 本身就是和 $\theta$ 同形状的向量）。
 
 > **🔧 工程上怎么落地？** 实际不会手算 $\nabla \log \pi$ ，而是构造一个**代理 loss** 让 autograd 自动反传：
 >
-> $L(\theta) = -\dfrac{1}{N}\sum_i \sum_t \log \pi_\theta(a_t^{(i)}|s_t^{(i)}) \cdot \underbrace{R(\tau^{(i)})}_{\text{detach 当常数}}$
+> ```math
+> L(\theta) = -\dfrac{1}{N}\sum_i \sum_t \log \pi_\theta(a_t^{(i)}|s_t^{(i)}) \cdot \underbrace{R(\tau^{(i)})}_{\text{detach 当常数}}
+> ```
 >
 > - 加**负号**：把"梯度上升 $J$ "翻译成"loss 下降"，适配标准优化器
-> - $R(\tau^{(i)})$ 必须 **detach / stop\_gradient**，它只是样本权重，不参与反传
+> - $`R(\tau^{(i)})`$ 必须 **detach / stop\_gradient**，它只是样本权重，不参与反传
 >
 > ```python
 > log_prob = policy.log_prob(a_t, s_t)     # ∇θ 沿这里反传
@@ -226,13 +228,13 @@ p_\theta(\tau) = \rho_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t|s_t) \cdot P(s_{t+
 
 #### Step 6：用「因果性」降方差，得到 reward-to-go
 
-REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都乘了同一个 $R(\tau)$ ，包括 $a_t$ 之前发生的奖励。直觉上这不对：
+REINFORCE 能用，但**方差太大**：每个 $`\nabla \log \pi(a_t|s_t)`$ 都乘了同一个 $R(\tau)$ ，包括 $`a_t`$ 之前发生的奖励。直觉上这不对：
 
 > $t=5$ 时刻选的动作，**不应该**为 $t=0,1,2,3,4$ 已经发生的奖励"负责"。
 
 我们能不能把"早于 $t$ 的奖励"从 $R(\tau)$ 里扔掉？答案是 **可以，且不改期望**。
 
-**关键引理**：对任意 $t' < t$ ，
+**关键引理**：对任意 $t' \lt t$ ，
 
 ```math
 \mathbb{E}_{\tau \sim \pi_\theta}\left[ \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot r_{t'} \right] = 0
@@ -240,7 +242,7 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 
 **为什么？** 用条件期望（"先固定历史，再看动作"）：
 
-设历史 $h_t = (s_0, a_0, \dots, s_t)$ 。当 $t' < t$ 时， $r_{t'}$ 完全由 $h_t$ 决定（一个常数），可以提出来：
+设历史 $`h_t = (s_0, a_0, \dots, s_t)`$ 。当 $t' \lt t$ 时， $`r_{t'}`$ 完全由 $`h_t`$ 决定（一个常数），可以提出来：
 
 ```math
 \mathbb{E}[\nabla \log \pi(a_t|s_t) \cdot r_{t'}] = \mathbb{E}_{h_t}\Big[\; r_{t'} \cdot \underbrace{\mathbb{E}_{a_t \sim \pi(\cdot|s_t)}[\nabla \log \pi(a_t|s_t)]}_{(\star)} \;\Big]
@@ -256,9 +258,9 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 
 > **🎯 物理直觉：因果律 + 概率守恒**
 >
-> **① 因果律**： $r_{t'}$ （ $t' \lt t$ ）在选 $a_t$ **之前就已成事实**，调整 $a_t$ 的策略**改变不了过去的奖励**。两件事统计独立，相乘期望就拆成两个期望的乘积。
+> **① 因果律**： $`r_{t'}`$ （ $t' \lt t$ ）在选 $`a_t`$ **之前就已成事实**，调整 $`a_t`$ 的策略**改变不了过去的奖励**。两件事统计独立，相乘期望就拆成两个期望的乘积。
 >
-> **② 概率守恒（score function 零均值）**： $\nabla \log \pi(a|s)$ 是"让动作 $a$ 更可能"的方向，但所有动作概率之和恒等于 1——**增加某个动作必须减少别的**，所有"指南针方向"互相抵消，平均必为零向量： $\mathbb{E}_{a\sim\pi}[\nabla \log \pi(a|s)] = 0$ 。
+> **② 概率守恒（score function 零均值）**： $\nabla \log \pi(a|s)$ 是"让动作 $a$ 更可能"的方向，但所有动作概率之和恒等于 1——**增加某个动作必须减少别的**，所有"指南针方向"互相抵消，平均必为零向量： $`\mathbb{E}_{a\sim\pi}[\nabla \log \pi(a|s)] = 0`$ 。
 >
 > 🐕 **训狗类比**：你**不能**因为狗"上周乖"就奖励它"今天某个具体动作"——今天选啥改变不了过去，这种"旧账信号"平均下来是 0，对学习无信息量。只有"动作之后"发生的事（reward-to-go）才真正承载了"这个动作好不好"的信息。
 
@@ -270,15 +272,15 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 
 > **💡 这里为什么突然出现了折扣因子 $\gamma$？**
 >
-> 前面推导全程没有 $\gamma$，reward-to-go 的"无折扣"版本应该是 $\hat G_t = \sum_{t'=t}^{T} r_{t'}$。折扣因子 $\gamma \in [0,1)$ 是一个**额外引入的设计选择**，动机有三层：
+> 前面推导全程没有 $\gamma$，reward-to-go 的"无折扣"版本应该是 $`\hat G_t = \sum_{t'=t}^{T} r_{t'}`$。折扣因子 $\gamma \in [0,1)$ 是一个**额外引入的设计选择**，动机有三层：
 >
-> **① 数学收敛（必须）**：如果轨迹长度 $T \to \infty$（无限步任务），不加折扣的总回报 $\sum r_{t'}$ 可能发散到无穷大。乘上 $\gamma^{t'-t}$ 后级数收敛，$G_t$ 有界。
+> **① 数学收敛（必须）**：如果轨迹长度 $T \to \infty$（无限步任务），不加折扣的总回报 $`\sum r_{t'}`$ 可能发散到无穷大。乘上 $`\gamma^{t'-t}`$ 后级数收敛，$`G_t`$ 有界。
 >
-> **② 远期奖励不确定性大（实际考量）**：越远的 $r_{t'}$ 中间经过的随机步越多，对"当前动作好不好"的信号越模糊。$\gamma^{t'-t}$ 指数衰减 = **让近期奖励权重大、远期奖励权重小**，降低方差。
+> **② 远期奖励不确定性大（实际考量）**：越远的 $`r_{t'}`$ 中间经过的随机步越多，对"当前动作好不好"的信号越模糊。$`\gamma^{t'-t}`$ 指数衰减 = **让近期奖励权重大、远期奖励权重小**，降低方差。
 >
 > **③ 经济学直觉（偏好建模）**：$\gamma$ 相当于"时间偏好率"——今天的 1 块钱比明天的 1 块钱值钱。agent 更看重即时回报，这在很多任务里是合理的归纳偏置。
 >
-> **注意**：加了 $\gamma < 1$ 后梯度估计**严格来说引入了偏差**（因为我们改变了优化目标，从最大化总回报变成最大化折扣回报）。但实践中这个偏差远小于它带来的方差收益，所以几乎所有实现都用 $\gamma \in [0.99, 0.999]$。
+> **注意**：加了 $\gamma \lt 1$ 后梯度估计**严格来说引入了偏差**（因为我们改变了优化目标，从最大化总回报变成最大化折扣回报）。但实践中这个偏差远小于它带来的方差收益，所以几乎所有实现都用 $\gamma \in [0.99, 0.999]$。
 
 策略梯度变成：
 
@@ -290,28 +292,28 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 
 > **💡 为什么方差会变小？**
 >
-> 用全部回报时，梯度的每个样本是 $\nabla \log \pi(a_t|s_t) \cdot \sum_{t'=0}^{T} r_{t'}$；用 reward-to-go 后变成 $\nabla \log \pi(a_t|s_t) \cdot \sum_{t'=t}^{T} r_{t'}$，区别就是砍掉了 $t' < t$ 的过去奖励。
+> 用全部回报时，梯度的每个样本是 $`\nabla \log \pi(a_t|s_t) \cdot \sum_{t'=0}^{T} r_{t'}`$；用 reward-to-go 后变成 $`\nabla \log \pi(a_t|s_t) \cdot \sum_{t'=t}^{T} r_{t'}`$，区别就是砍掉了 $t' \lt t$ 的过去奖励。
 >
-> 我们已经证明被砍掉的部分**期望为零**（因果律 + score function 零均值），但"期望为零" ≠ "每次采样为零"！每次采到的 $r_{t'} \cdot \nabla \log \pi(a_t|s_t)$ 可以是很大的正数或负数——长期平均消掉，但**每一次都在剧烈波动**。
+> 我们已经证明被砍掉的部分**期望为零**（因果律 + score function 零均值），但"期望为零" ≠ "每次采样为零"！每次采到的 $`r_{t'} \cdot \nabla \log \pi(a_t|s_t)`$ 可以是很大的正数或负数——长期平均消掉，但**每一次都在剧烈波动**。
 >
-> 由于"未来奖励"和"过去奖励"关于 $a_t$ 条件独立，方差可以拆开：
+> 由于"未来奖励"和"过去奖励"关于 $`a_t`$ 条件独立，方差可以拆开：
 >
 > ```math
-> \text{Var}\big[\nabla \log \pi \cdot R(\tau)\big] = \text{Var}\big[\nabla \log \pi \cdot \hat G_t\big] + \underbrace{\text{Var}\big[\nabla \log \pi \cdot \textstyle\sum_{t'<t} r_{t'}\big]}_{\geq\, 0,\;\text{纯噪声}}
+> \text{Var}\big[\nabla \log \pi \cdot R(\tau)\big] = \text{Var}\big[\nabla \log \pi \cdot \hat G_t\big] + \underbrace{\text{Var}\big[\nabla \log \pi \cdot \textstyle\sum_{t'\lt t} r_{t'}\big]}_{\geq\, 0,\;\text{纯噪声}}
 > ```
 >
 > 被砍掉的那项：对期望的贡献 = **0**（有用信号量为零），对方差的贡献 = **正数**（纯噪声）。砍掉它 = **信号不变，噪声减少** → 方差严格变小。
 >
-> 一句话：过去的奖励 $r_{t'<t}$ 跟当前动作 $a_t$ 统计独立，乘出来期望为零——**它不携带任何关于"$a_t$ 好不好"的信息，却每次采样都在注入随机波动**。扔掉它就是扔掉纯噪声，信噪比自然提高。
+> 一句话：过去的奖励 $`r_{t'\lt t}`$ 跟当前动作 $`a_t`$ 统计独立，乘出来期望为零——**它不携带任何关于"$`a_t`$ 好不好"的信息，却每次采样都在注入随机波动**。扔掉它就是扔掉纯噪声，信噪比自然提高。
 
-#### Step 7：把 $\hat G_t$ 推广为通用权重 $\Psi_t$
+#### Step 7：把 $`\hat G_t`$ 推广为通用权重 $`\Psi_t`$
 
-沿着同样的「无偏 + 减方差」逻辑，可以把 $\hat G_t$ 换成各种东西：
+沿着同样的「无偏 + 减方差」逻辑，可以把 $`\hat G_t`$ 换成各种东西：
 
-1. 减 baseline： $\Psi_t = \hat G_t - b(s_t)$ （任何只依赖 $s_t$ 的函数都不引入偏差，原因和 Step 6 那个 $(\star) = 0$ 一模一样）
-2. 用 $Q$ 函数： $\Psi_t = Q^\pi(s_t,a_t)$ （因为 $\mathbb{E}[\hat G_t | s_t, a_t] = Q^\pi$ ，期望守恒）
-3. 用 advantage： $\Psi_t = A^\pi = Q^\pi - V^\pi$ （baseline 取 $b(s_t)=V^\pi(s_t)$ ）
-4. 用 TD 残差： $\Psi_t = \delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ （用真 $V$ 时也是 $A^\pi$ 的无偏估计）
+1. 减 baseline： $`\Psi_t = \hat G_t - b(s_t)`$ （任何只依赖 $`s_t`$ 的函数都不引入偏差，原因和 Step 6 那个 $(\star) = 0$ 一模一样）
+2. 用 $Q$ 函数： $`\Psi_t = Q^\pi(s_t,a_t)`$ （因为 $`\mathbb{E}[\hat G_t | s_t, a_t] = Q^\pi`$ ，期望守恒）
+3. 用 advantage： $`\Psi_t = A^\pi = Q^\pi - V^\pi`$ （baseline 取 $`b(s_t)=V^\pi(s_t)`$ ）
+4. 用 TD 残差： $`\Psi_t = \delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)`$ （用真 $V$ 时也是 $A^\pi$ 的无偏估计）
 5. 用 GAE：在 $\lambda$ 上对多种步数插值
 
 每一种都是「方差—偏差」轴上的不同权衡。最终通用形式：
@@ -329,7 +331,7 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 1. **log-derivative trick**： $\nabla p = p \cdot \nabla \log p$
    作用：把"梯度"包装成"期望"，使采样估计成为可能。
 
-2. **$\mathbb{E}[\nabla \log \pi(a|s) \cdot c(s)] = 0$**（baseline 引理）
+2. **$`\mathbb{E}[\nabla \log \pi(a|s) \cdot c(s)] = 0`$**（baseline 引理）
    作用：可以任意减掉一个只依赖状态的项，**只降方差，不引入偏差**。这是 advantage、baseline、reward-to-go 全部的数学基础。
 
 > **💡 Baseline 引理为什么成立 & 为什么能降方差？**
@@ -342,7 +344,7 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 >
 > 所以**不管 $c(s)$ 是什么**，减掉它都不改变梯度期望（无偏）。
 >
-> **为什么能降方差：** $\hat G_t$ 本身可能是很大的正数（比如 +200），波动剧烈。如果 baseline $b(s_t) \approx \mathbb{E}[\hat G_t | s_t] = V^\pi(s_t)$，那 $\hat G_t - b(s_t)$ 就变成围绕零波动的小数（比如 ±20），数值尺度小一个量级，方差自然小。
+> **为什么能降方差：** $`\hat G_t`$ 本身可能是很大的正数（比如 +200），波动剧烈。如果 baseline $`b(s_t) \approx \mathbb{E}[\hat G_t | s_t] = V^\pi(s_t)`$，那 $`\hat G_t - b(s_t)`$ 就变成围绕零波动的小数（比如 ±20），数值尺度小一个量级，方差自然小。
 >
 > **直觉：** 原来的信号是"这条轨迹总共拿了 200 分"→ 所有动作都被鼓励。减掉 baseline 后变成"这条轨迹**比平均多拿了 20 分**"→ 只有真正好于平均的动作被鼓励，差于平均的被抑制。信号从"绝对好坏"变成"相对好坏"，更精准、波动更小。这就是为什么 advantage $A^\pi = Q^\pi - V^\pi$ 是最常用的形式——$V^\pi$ 就是那个最优的 baseline。
 
@@ -352,9 +354,9 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 
 ### 1.3 一个超小例子（彻底体会"采样估计"）
 
-假设状态只有 1 个，动作只有 2 个： $a_1, a_2$ 。
+假设状态只有 1 个，动作只有 2 个： $`a_1, a_2`$ 。
 
-策略 $\pi_\theta(a_1) = \sigma(\theta)$ （sigmoid）， $\pi_\theta(a_2) = 1 - \sigma(\theta)$ 。奖励：选 $a_1$ 得 +1，选 $a_2$ 得 0。
+策略 $`\pi_\theta(a_1) = \sigma(\theta)`$ （sigmoid）， $`\pi_\theta(a_2) = 1 - \sigma(\theta)`$ 。奖励：选 $`a_1`$ 得 +1，选 $`a_2`$ 得 0。
 
 **真实梯度**（解析算）：
 
@@ -362,13 +364,13 @@ REINFORCE 能用，但**方差太大**：每个 $\nabla \log \pi(a_t|s_t)$ 都�
 J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta) \quad \Rightarrow \quad \nabla J = \sigma(\theta)(1-\sigma(\theta))
 ```
 
-**用策略梯度估计**：采样 100 次，每次记下 $(a_i, r_i)$ ，估计：
+**用策略梯度估计**：采样 100 次，每次记下 $`(a_i, r_i)`$ ，估计：
 
 ```math
 \widehat{\nabla J} = \frac{1}{100}\sum_i \nabla_\theta \log \pi_\theta(a_i) \cdot r_i
 ```
 
-只有 $a_i = a_1$ 的样本贡献非零项（因为 $r_i=0$ 时整项为 0），近似为 $\sigma(\theta) \cdot \nabla \log \sigma(\theta) = \sigma(\theta)(1-\sigma(\theta))$ ，和真实梯度一致。✅
+只有 $`a_i = a_1`$ 的样本贡献非零项（因为 $`r_i=0`$ 时整项为 0），近似为 $\sigma(\theta) \cdot \nabla \log \sigma(\theta) = \sigma(\theta)(1-\sigma(\theta))$ ，和真实梯度一致。✅
 
 这就是策略梯度的全部魔法：**采样 + 加权 log 概率 = 无偏的梯度估计**。
 
@@ -382,7 +384,7 @@ J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta)
 \mathcal{L}_{CE}(\theta) = -\log \pi_\theta(a^* \mid s) \quad \Rightarrow \quad \nabla \mathcal{L}_{CE} = -\nabla \log \pi_\theta(a^* \mid s)
 ```
 
-（ $a^*$ 是数据集里的正确标签。最小化 loss = 最大化正确标签的对数概率。）
+（ $`a^*`$ 是数据集里的正确标签。最小化 loss = 最大化正确标签的对数概率。）
 
 > **💡 CE loss 里的 log 是怎么来的？——两条等价的推导路线**
 >
@@ -390,12 +392,12 @@ J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta)
 >
 > 目标：最大化正确标签的概率 $`\max_\theta \pi_\theta(a^*|s)`$
 > → 取 log（单调，不改变最优解）：$`\max_\theta \log \pi_\theta(a^*|s)`$
-> → 加负号变最小化（优化器默认 minimize）：$\min_\theta -\log \pi_\theta(a^*|s)$
+> → 加负号变最小化（优化器默认 minimize）：$`\min_\theta -\log \pi_\theta(a^*|s)`$
 > → 这就是 CE loss。
 >
 > **路线 2：从信息论来（分布距离视角）**
 >
-> Cross-Entropy 定义：$H(p,q) = -\sum_a p(a) \log q(a)$，衡量真实分布 $p$ 与模型分布 $q$ 的距离。监督学习中 $p$ 是 one-hot（$p(a^*)=1$，其余为 0），代入求和只剩一项：
+> Cross-Entropy 定义：$`H(p,q) = -\sum_a p(a) \log q(a)`$，衡量真实分布 $p$ 与模型分布 $q$ 的距离。监督学习中 $p$ 是 one-hot（$`p(a^*)=1`$，其余为 0），代入求和只剩一项：
 >
 > ```math
 > H(p,q) = -1 \cdot \log \pi_\theta(a^*|s) = -\log \pi_\theta(a^*|s)
@@ -407,7 +409,7 @@ J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta)
 >
 > | | MLE | CE loss |
 > |---|---|---|
-> | 形式 | $\max_\theta \sum_i \log p_\theta(x_i)$ | $\min_\theta -\frac{1}{N}\sum_i \log p_\theta(x_i)$ |
+> | 形式 | $`\max_\theta \sum_i \log p_\theta(x_i)`$ | $`\min_\theta -\frac{1}{N}\sum_i \log p_\theta(x_i)`$ |
 > | 本质 | 同一件事 | 同一件事 |
 > | 区别 | 概率/统计的叫法，做 max | 深度学习的叫法，加负号做 min |
 >
@@ -429,9 +431,9 @@ J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta)
 
 | 维度        | 监督学习（CE）                  | 策略梯度（PG）                                  |
 | --------- | ------------------------- | ----------------------------------------- |
-| 学谁？       | 正确标签 $a^*$ （人工给）           | 自己采样的 $a_t \sim \pi_\theta$                |
-| 每个样本的"权重" | 1（每个标签都同等重要）              | $\Psi_t$ （advantage：好就正、坏就负）               |
-| 效果        | 把 $\pi(a^* \mid s)$ 拉高             | $\Psi_t>0$ 把 $\pi(a_t \mid s)$ 拉高， $\Psi_t<0$ 拉低 |
+| 学谁？       | 正确标签 $`a^*`$ （人工给）           | 自己采样的 $`a_t \sim \pi_\theta`$                |
+| 每个样本的"权重" | 1（每个标签都同等重要）              | $`\Psi_t`$ （advantage：好就正、坏就负）               |
+| 效果        | 把 $`\pi(a^* \mid s)`$ 拉高             | $`\Psi_t\gt 0`$ 把 $`\pi(a_t \mid s)`$ 拉高， $`\Psi_t\lt 0`$ 拉低 |
 | 数据来源      | 静态数据集                     | 模型自己 rollout 出来的                          |
 
 **一句话**：策略梯度 = **带权重的、自己生成 label 的交叉熵**。
@@ -441,18 +443,18 @@ J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta)
 
 这也是为什么 LLM RLHF 代码上和 SFT 几乎一样——把 label 换成自采样、把 loss 乘个 advantage 就完事了。
 
-其中 $\Psi_t$ 可以取多种形式（这就是各种算法的差异来源）：
+其中 $`\Psi_t`$ 可以取多种形式（这就是各种算法的差异来源）：
 
-| $\Psi_t$ 的选择                       | 算法 / 含义              |
+| $`\Psi_t`$ 的选择                       | 算法 / 含义              |
 | ----------------------------------- | -------------------- |
-| $G_t$ （总回报）                          | REINFORCE（高方差）       |
-| $G_t - b(s_t)$                      | REINFORCE + baseline |
-| $Q^\pi(s_t,a_t)$                    | Q Actor-Critic       |
-| $A^\pi(s_t,a_t)$                    | Advantage AC（A2C）    |
-| $r_t + \gamma V(s_{t+1}) - V(s_t)$  | TD residual          |
+| $`G_t`$ （总回报）                          | REINFORCE（高方差）       |
+| $`G_t - b(s_t)`$                      | REINFORCE + baseline |
+| $`Q^\pi(s_t,a_t)`$                    | Q Actor-Critic       |
+| $`A^\pi(s_t,a_t)`$                    | Advantage AC（A2C）    |
+| $`r_t + \gamma V(s_{t+1}) - V(s_t)`$  | TD residual          |
 | GAE                                 | PPO / 现代 RLHF        |
 
-**直觉**： $\Psi_t > 0$ 时提高 $\log \pi(a_t|s_t)$ → 提升该动作概率； $\Psi_t < 0$ 时反之。
+**直觉**： $`\Psi_t \gt 0`$ 时提高 $`\log \pi(a_t|s_t)`$ → 提升该动作概率； $`\Psi_t \lt 0`$ 时反之。
 
 ### 为什么要减 baseline？
 
@@ -472,24 +474,24 @@ J(\theta) = \sigma(\theta) \cdot 1 + (1-\sigma(\theta)) \cdot 0 = \sigma(\theta)
 A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 ```
 
-- $A > 0$ ：这个动作优于该状态下的平均水平 → 鼓励
-- $A < 0$ ：劣于平均 → 抑制
+- $A \gt 0$ ：这个动作优于该状态下的平均水平 → 鼓励
+- $A \lt 0$ ：劣于平均 → 抑制
 - $A = 0$ ：和平均一样，不更新
 
 ### 2.1 朴素估计
 
-- 蒙特卡洛： $\hat A_t = G_t - V(s_t)$ ，**无偏但高方差**
-- 一步 TD： $\hat A_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ ，**低方差但有偏**
+- 蒙特卡洛： $`\hat A_t = G_t - V(s_t)`$ ，**无偏但高方差**
+- 一步 TD： $`\hat A_t = r_t + \gamma V(s_{t+1}) - V(s_t)`$ ，**低方差但有偏**
 
 > **🎯 直观理解：两种估"动作好不好"的方式**
 >
-> 本质上都是在估 $Q^\pi(s_t, a_t)$ （这个动作之后总共能拿多少回报），然后减掉基准 $V(s_t)$ 。**区别在用什么估 $Q$**：
+> 本质上都是在估 $`Q^\pi(s_t, a_t)`$ （这个动作之后总共能拿多少回报），然后减掉基准 $`V(s_t)`$ 。**区别在用什么估 $Q$**：
 >
-> **① 蒙特卡洛 = "实测到底"**：用真实走完整条轨迹的总回报 $G_t$ 当 $Q$ 。
+> **① 蒙特卡洛 = "实测到底"**：用真实走完整条轨迹的总回报 $`G_t`$ 当 $Q$ 。
 > - ✅ **无偏**：来自真实数据，环境怎么走就怎么记。
-> - ❌ **高方差**： $G_t$ 包含**之后每一步**动作选择、环境转移、奖励的随机性——一条轨迹运气好 $+1000$ ，运气差 $-1000$ ，但其实开局动作差不多好。
+> - ❌ **高方差**： $`G_t`$ 包含**之后每一步**动作选择、环境转移、奖励的随机性——一条轨迹运气好 $+1000$ ，运气差 $-1000$ ，但其实开局动作差不多好。
 >
-> **② 一步 TD = "走一步看一步 + 信任 critic 预测剩下的"**：只用真实跑一步 $r_t$ ，剩下的未来全靠 critic 的 $V(s_{t+1})$ 估。
+> **② 一步 TD = "走一步看一步 + 信任 critic 预测剩下的"**：只用真实跑一步 $`r_t`$ ，剩下的未来全靠 critic 的 $`V(s_{t+1})`$ 估。
 > - ✅ **低方差**：只引入 1 步的随机性，后面用平滑的预测代替。
 > - ❌ **有偏**： $V$ 是学出来的近似函数，**$V$ 不准 → 估出来的 advantage 就跟着歪**。
 >
@@ -517,41 +519,43 @@ A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 
 > **💡 推导：$\lambda=1$ 时 GAE 为什么退化为 MC？**
 >
-> 令 $\lambda=1$，GAE 变为 $\hat A_t = \sum_{l=0}^{\infty} \gamma^l \delta_{t+l}$。把 $\delta_{t+l} = r_{t+l} + \gamma V(s_{t+l+1}) - V(s_{t+l})$ 代入并拆成三个求和：
+> 令 $\lambda=1$，GAE 变为 $`\hat A_t = \sum_{l=0}^{\infty} \gamma^l \delta_{t+l}`$。把 $`\delta_{t+l} = r_{t+l} + \gamma V(s_{t+l+1}) - V(s_{t+l})`$ 代入并拆成三个求和：
 >
 > ```math
 > \hat A_t = \underbrace{\sum_{l=0}^{\infty} \gamma^l r_{t+l}}_{(1)} + \underbrace{\sum_{l=0}^{\infty} \gamma^{l+1} V(s_{t+l+1})}_{(2)} - \underbrace{\sum_{l=0}^{\infty} \gamma^l V(s_{t+l})}_{(3)}
 > ```
 >
-> 对 (2) 换元 $m = l+1$：$\sum_{m=1}^{\infty} \gamma^m V(s_{t+m})$
+> 对 (2) 换元 $m = l+1$：$`\sum_{m=1}^{\infty} \gamma^m V(s_{t+m})`$
 >
-> 对 (3) 拆出首项：$V(s_t) + \sum_{m=1}^{\infty} \gamma^m V(s_{t+m})$
+> 对 (3) 拆出首项：$`V(s_t) + \sum_{m=1}^{\infty} \gamma^m V(s_{t+m})`$
 >
-> (2) − (3) 中 $\sum_{m=1}^{\infty}$ 的部分**完全抵消**（telescoping / 望远镜消去），只剩 $-V(s_t)$：
+> (2) − (3) 中 $`\sum_{m=1}^{\infty}`$ 的部分**完全抵消**（telescoping / 望远镜消去），只剩 $`-V(s_t)`$：
 >
 > ```math
 > \hat A_t = \sum_{l=0}^{\infty} \gamma^l r_{t+l} - V(s_t) = G_t - V(s_t)
 > ```
 >
-> 这正是**蒙特卡洛 advantage 估计**：用真实回报 $G_t$ 减去 baseline。所有中间的 $V$ 项都望远镜式地消掉了——$\lambda=1$ 意味着"完全不截断，信任真实回报到底"，critic 只作为 baseline 出现一次。
+> 这正是**蒙特卡洛 advantage 估计**：用真实回报 $`G_t`$ 减去 baseline。所有中间的 $V$ 项都望远镜式地消掉了——$\lambda=1$ 意味着"完全不截断，信任真实回报到底"，critic 只作为 baseline 出现一次。
 
 **为什么需要 GAE**：在偏差和方差之间提供一个**连续调节旋钮**。这是现代 PPO 的标配。
 
-> **🎯 直观理解：把 $\delta_t$ 看作"惊讶值"**
+> **🎯 直观理解：把 $`\delta_t`$ 看作"惊讶值"**
 >
-> $`\delta_t = \underbrace{r_t + \gamma V(s_{t+1})}_{\text{实际拿到 + 之后估值}} - \underbrace{V(s_t)}_{\text{原本预期}}`$
+> ```math
+> \delta_t = \underbrace{r_t + \gamma V(s_{t+1})}_{\text{实际拿到 + 之后估值}} - \underbrace{V(s_t)}_{\text{原本预期}}
+> ```
 >
 > 就是 **"实际比预期好/差多少"** ——一个**瞬时惊讶（prediction error）**：
-> - $\delta_t > 0$ ：这步比预想的好 → 该动作值得鼓励
-> - $\delta_t < 0$ ：比预想的差 → 该动作要抑制
+> - $`\delta_t \gt 0`$ ：这步比预想的好 → 该动作值得鼓励
+> - $`\delta_t \lt 0`$ ：比预想的差 → 该动作要抑制
 >
-> **但 $V$ 自己也不准！** $V(s_{t+1})$ 也可能高估/低估，要等到再往后走才暴露——所以 $\delta_{t+1}$ 是"再过一步才浮现出来的惊讶"， $\delta_{t+2}$ 是"再过两步浮现的惊讶"……
+> **但 $V$ 自己也不准！** $`V(s_{t+1})`$ 也可能高估/低估，要等到再往后走才暴露——所以 $`\delta_{t+1}`$ 是"再过一步才浮现出来的惊讶"， $`\delta_{t+2}`$ 是"再过两步浮现的惊讶"……
 >
 > **GAE 就是把这些迟到的惊讶按几何权重 $(\gamma\lambda)^l$ 累加**：当下立刻显现的算满分，越往后权重越小。
 >
 > **$\lambda$ 是"对 critic 的信任旋钮"**：
 > - $\lambda = 0$ ：完全信 $V$ ，只看 1 步惊讶 → 平滑稳定，但 $V$ 错了就跟着错（**有偏**）
-> - $\lambda = 1$ ：完全不信 $V$ ，把所有未来惊讶都算上 → 等价于 $G_t - V(s_t)$ ，真实但嘈杂（**高方差**）
+> - $\lambda = 1$ ：完全不信 $V$ ，把所有未来惊讶都算上 → 等价于 $`G_t - V(s_t)`$ ，真实但嘈杂（**高方差**）
 > - $\lambda \in [0.9, 0.99]$ ：**适度信任** critic 但也用真实回报校正——工程上的甜点区。
 >
 > 一句话：**GAE = 用 critic 估算"动作好坏"，并允许真实回报对这个估算做几何衰减的修正**。
@@ -559,7 +563,7 @@ A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 ### 2.3 LLM 场景下的特殊性
 
 - 奖励通常**只在最后一个 token** 给出（来自 RM）
-- 中间 token 的"即时奖励" $r_t = 0$ （或只有 KL 惩罚项）
+- 中间 token 的"即时奖励" $`r_t = 0`$ （或只有 KL 惩罚项）
 - GAE 退化为：把末端 reward 通过 $\gamma$ 反向折扣到每个 token，再减去 critic 估计
 - 部分实现里直接 $\gamma = 1, \lambda = 1$ ，相当于序列级别的 reward-to-go
 
@@ -571,7 +575,7 @@ A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 
 朴素策略梯度是 **on-policy** 的：每次更新 $\theta$ 后，旧数据就"过期"了，必须重新 rollout。这在 LLM 上极度昂贵（rollout 一次要跑很久）。
 
-我们希望：**用 $\pi_{\theta_{old}}$ 采样的数据，多次更新 $\theta$**。
+我们希望：**用 $`\pi_{\theta_{old}}`$ 采样的数据，多次更新 $\theta$**。
 
 ### 3.2 数学基础
 
@@ -585,35 +589,35 @@ A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 J(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\theta_{old}}} \left[ \underbrace{\frac{\pi_\theta(a|s)}{\pi_{\theta_{old}}(a|s)}}_{r_t(\theta)\text{，重要性比}} \cdot A^{\pi_{\theta_{old}}}(s,a) \right]
 ```
 
-记 $r_t(\theta) = \dfrac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ ，称为 **importance ratio**。
+记 $`r_t(\theta) = \dfrac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}`$ ，称为 **importance ratio**。
 
-- 当 $\theta = \theta_{old}$ 时 $r_t = 1$
-- 越远， $r_t$ 越偏离 1
+- 当 $`\theta = \theta_{old}`$ 时 $`r_t = 1`$
+- 越远， $`r_t`$ 越偏离 1
 
 > **🎯 直观理解：给旧样本"打折/加权"，假装它来自新分布**
 >
 > **核心思想**：不想重新采样了（rollout 太贵），那就**给旧样本一个权重**，让加权后的旧数据"看起来像是从新策略下采的"。
 >
 > **🛒 调研类比**：你想估计"全国人均消费"，但手头只有"北京调研数据"。
-> - 不用重做全国调研——直接给每个北京样本乘个权重 $\frac{p_{\text{全国}}(x)}{p_{\text{北京}}(x)}$
-> - 在北京被过采样的群体（比如高收入者）权重 $<1$ ，在全国相对稀有的样本权重 $>1$ → 加权后的"北京数据"就能估全国均值
+> - 不用重做全国调研——直接给每个北京样本乘个权重 $`\frac{p_{\text{全国}}(x)}{p_{\text{北京}}(x)}`$
+> - 在北京被过采样的群体（比如高收入者）权重 $\lt 1$ ，在全国相对稀有的样本权重 $\gt 1$ → 加权后的"北京数据"就能估全国均值
 >
-> **$r_t$ 的物理含义**：
-> - $r_t > 1$ ：新策略 $\pi_\theta$ **比**旧策略**更**爱选这个 $a_t$ → 这条旧样本"对新策略更有代表性" → **放大它的影响力**
-> - $r_t < 1$ ：新策略**不太**爱选这个 $a_t$ → 这条样本对新策略不太相关 → **缩小它的影响力**
-> - $r_t = 1$ ：两策略对该动作偏好一致 → 不打折(退化为普通策略梯度)
+> **$`r_t`$ 的物理含义**：
+> - $`r_t \gt 1`$ ：新策略 $`\pi_\theta`$ **比**旧策略**更**爱选这个 $`a_t`$ → 这条旧样本"对新策略更有代表性" → **放大它的影响力**
+> - $`r_t \lt 1`$ ：新策略**不太**爱选这个 $`a_t`$ → 这条样本对新策略不太相关 → **缩小它的影响力**
+> - $`r_t = 1`$ ：两策略对该动作偏好一致 → 不打折(退化为普通策略梯度)
 >
-> **为什么有"信任域"问题？** 这种"打折"只在新旧策略**差距不大**时有效；差距太大, $r_t$ 会变成几十几百倍,**少数样本主导一切**——这就是 PPO 要 clip 的根本原因（下一节）。
+> **为什么有"信任域"问题？** 这种"打折"只在新旧策略**差距不大**时有效；差距太大, $`r_t`$ 会变成几十几百倍,**少数样本主导一切**——这就是 PPO 要 clip 的根本原因（下一节）。
 
 ### 3.3 重要性采样的隐患
 
-当 $\pi_\theta$ 和 $\pi_{\theta_{old}}$ 差距大时：
+当 $`\pi_\theta`$ 和 $`\pi_{\theta_{old}}`$ 差距大时：
 
-1. **方差爆炸**： $r_t$ 可能极大或极小（几十、几百倍）
+1. **方差爆炸**： $`r_t`$ 可能极大或极小（几十、几百倍）
 2. **梯度失真**：少量样本主导更新方向
 3. **训练崩溃**：策略可能直接跑飞
 
-→ 这就是为什么需要 **trust region**（信任域）：限制 $\pi_\theta$ 不要离 $\pi_{\theta_{old}}$ 太远。
+→ 这就是为什么需要 **trust region**（信任域）：限制 $`\pi_\theta`$ 不要离 $`\pi_{\theta_{old}}`$ 太远。
 
 ---
 
@@ -635,7 +639,7 @@ J(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\theta_{old}}} \left[ \underbrace{\frac{
 >
 > | | TRPO | PPO-Clip |
 > |---|---|---|
-> | 限制手段 | **硬约束**：$\text{KL}(\pi_{old} \Vert \pi_{new}) \le \delta$ | **软限制**：clip 比率到 $[1-\epsilon, 1+\epsilon]$ |
+> | 限制手段 | **硬约束**：$`\text{KL}(\pi_{old} \Vert \pi_{new}) \le \delta`$ | **软限制**：clip 比率到 $[1-\epsilon, 1+\epsilon]$ |
 > | 优化方法 | 约束优化（拉格朗日 + 共轭梯度 + line search） | 普通 SGD，和监督学习一样 |
 > | 需要二阶信息 | 是（Hessian-vector product） | 否 |
 > | 实现复杂度 | 高 | 低，几行代码 |
@@ -654,26 +658,26 @@ L^{CLIP}(\theta) = \mathbb{E}_t \left[ \min\big( r_t(\theta) A_t,\ \text{clip}(r
 
 #### 关键：为什么是 `min`？分情况看
 
-**Case 1： $A_t > 0$ （好动作）**
+**Case 1： $`A_t \gt 0`$ （好动作）**
 
-我们想让 $r_t$ 变大（增加该动作概率）。
-- 若 $r_t \le 1 + \epsilon$ ：正常更新
-- 若 $r_t > 1 + \epsilon$ ： $\text{clip}$ 截断为 $1+\epsilon$ ，**再大也不给奖励**
+我们想让 $`r_t`$ 变大（增加该动作概率）。
+- 若 $`r_t \le 1 + \epsilon`$ ：正常更新
+- 若 $`r_t \gt 1 + \epsilon`$ ： $`\text{clip}`$ 截断为 $1+\epsilon$ ，**再大也不给奖励**
   → 防止策略更新过激
 
-**Case 2： $A_t < 0$ （坏动作）**
+**Case 2： $`A_t \lt 0`$ （坏动作）**
 
-我们想让 $r_t$ 变小（减少该动作概率）。
-- 若 $r_t \ge 1 - \epsilon$ ：正常更新
-- 若 $r_t < 1 - \epsilon$ ： $\text{clip}$ 截断为 $1-\epsilon$ ，**再小也不再惩罚**
+我们想让 $`r_t`$ 变小（减少该动作概率）。
+- 若 $`r_t \ge 1 - \epsilon`$ ：正常更新
+- 若 $`r_t \lt 1 - \epsilon`$ ： $`\text{clip}`$ 截断为 $1-\epsilon$ ，**再小也不再惩罚**
 
 #### `min` 的妙处：单边限制
 
 注意：**只在「会让目标函数变大且更新过激」的方向限制**，对「拉回安全区」的方向不限制。
 
-举例： $A_t > 0$ 但当前 $r_t < 1-\epsilon$ （一个错误的策略压低了好动作），此时：
-- $r_t A_t$ 较小
-- $\text{clip}(r_t, 1-\epsilon, 1+\epsilon)A_t = (1-\epsilon)A_t$ 较大
+举例： $`A_t \gt 0`$ 但当前 $`r_t \lt 1-\epsilon`$ （一个错误的策略压低了好动作），此时：
+- $`r_t A_t`$ 较小
+- $`\text{clip}(r_t, 1-\epsilon, 1+\epsilon)A_t = (1-\epsilon)A_t`$ 较大
 - $\min$ 选小的 → 仍然给完整梯度让策略**修正回来**
 
 这是一种**悲观下界**（pessimistic lower bound）。
@@ -686,7 +690,7 @@ L^{PPO}(\theta) = \mathbb{E}_t \left[ L^{CLIP}_t - c_1 L^{VF}_t + c_2 \mathcal{H
 
 三项：
 1. **Clip 策略损失**（actor）
-2. **Value loss**： $L^{VF} = (V_\theta(s_t) - V_t^{target})^2$ （critic，常和 actor 共享 backbone）
+2. **Value loss**： $`L^{VF} = (V_\theta(s_t) - V_t^{target})^2`$ （critic，常和 actor 共享 backbone）
 3. **Entropy bonus**：鼓励探索，防止策略坍缩到 deterministic
 
 ### 4.4 手推 PPO-Clip 反传
@@ -697,9 +701,9 @@ PPO-Clip loss（要最大化）：
 L^{CLIP} = \min\big(\underbrace{r_t A_t}_{f_1},\; \underbrace{\text{clip}(r_t, 1\!-\!\epsilon, 1\!+\!\epsilon) \cdot A_t}_{f_2}\big)
 ```
 
-**Step 1：$\nabla_\theta r_t$**
+**Step 1：$`\nabla_\theta r_t`$**
 
-$r_t = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$，分母是冻结常数，所以：
+$`r_t = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}`$，分母是冻结常数，所以：
 
 ```math
 \nabla_\theta r_t = \frac{\nabla_\theta \pi_\theta}{\pi_{\theta_{old}}} = \frac{\pi_\theta}{\pi_{\theta_{old}}} \cdot \nabla_\theta \log \pi_\theta = r_t \cdot \nabla_\theta \log \pi_\theta(a_t|s_t)
@@ -707,17 +711,17 @@ $r_t = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$，分母是冻�
 
 **Step 2：min 的梯度是分段的**
 
-min 选谁，梯度就走谁。clip 在 $[1-\epsilon, 1+\epsilon]$ 内梯度 = $\nabla r_t$，超出范围梯度 = 0（输出为常数）。
+min 选谁，梯度就走谁。clip 在 $[1-\epsilon, 1+\epsilon]$ 内梯度 = $`\nabla r_t`$，超出范围梯度 = 0（输出为常数）。
 
-- **$r_t \in [1-\epsilon, 1+\epsilon]$（未被 clip）**：$f_1 = f_2$，梯度 = $A_t \cdot \nabla_\theta r_t$，正常流过。
-- **$r_t$ 越界时分四种情况**：
+- **$`r_t \in [1-\epsilon, 1+\epsilon]`$（未被 clip）**：$`f_1 = f_2`$，梯度 = $`A_t \cdot \nabla_\theta r_t`$，正常流过。
+- **$`r_t`$ 越界时分四种情况**：
 
-| $A_t$ | $r_t$ 范围 | min 选谁 | 梯度 | 直觉 |
+| $`A_t`$ | $`r_t`$ 范围 | min 选谁 | 梯度 | 直觉 |
 |---|---|---|---|---|
-| $> 0$（好动作） | $r_t > 1+\epsilon$ | $f_2$（clipped） | **0** | 概率已经涨够了，别再涨 |
-| $> 0$（好动作） | $r_t < 1-\epsilon$ | $f_1$（unclipped） | $A_t \nabla r_t$ | 概率反而降了？允许修正回来 |
-| $< 0$（坏动作） | $r_t < 1-\epsilon$ | $f_2$（clipped） | **0** | 概率已经降够了，别再降 |
-| $< 0$（坏动作） | $r_t > 1+\epsilon$ | $f_1$（unclipped） | $A_t \nabla r_t$ | 坏动作概率反而涨了？允许压回来 |
+| $\gt 0$（好动作） | $`r_t \gt 1+\epsilon`$ | $`f_2`$（clipped） | **0** | 概率已经涨够了，别再涨 |
+| $\gt 0$（好动作） | $`r_t \lt 1-\epsilon`$ | $`f_1`$（unclipped） | $`A_t \nabla r_t`$ | 概率反而降了？允许修正回来 |
+| $\lt 0$（坏动作） | $`r_t \lt 1-\epsilon`$ | $`f_2`$（clipped） | **0** | 概率已经降够了，别再降 |
+| $\lt 0$（坏动作） | $`r_t \gt 1+\epsilon`$ | $`f_1`$（unclipped） | $`A_t \nabla r_t`$ | 坏动作概率反而涨了？允许压回来 |
 
 **Step 3：汇总**
 
@@ -725,7 +729,7 @@ min 选谁，梯度就走谁。clip 在 $[1-\epsilon, 1+\epsilon]$ 内梯度 = $
 \nabla_\theta L^{CLIP} = \begin{cases} A_t \cdot r_t \cdot \nabla_\theta \log \pi_\theta(a_t|s_t) & \text{梯度流过} \\ 0 & \text{梯度被截断} \end{cases}
 ```
 
-> **一句话总结**：clip 的反传本质就是一个**梯度开关**——当策略更新步子已经迈够大了（$r_t$ 越出 $[1-\epsilon, 1+\epsilon]$ 且方向是"优化过头"），直接把梯度关掉，防止过度优化。只有当越界方向"不对"（好动作概率反而降了 / 坏动作概率反而涨了）时，梯度才被放行用于修正。
+> **一句话总结**：clip 的反传本质就是一个**梯度开关**——当策略更新步子已经迈够大了（$`r_t`$ 越出 $[1-\epsilon, 1+\epsilon]$ 且方向是"优化过头"），直接把梯度关掉，防止过度优化。只有当越界方向"不对"（好动作概率反而降了 / 坏动作概率反而涨了）时，梯度才被放行用于修正。
 
 ### 4.5 训练循环（pseudocode）
 
@@ -764,20 +768,20 @@ for iteration in range(1, max_iter + 1):
 
 注意：**π_old 在整轮 rollout 中固定**，所以这一轮内多个 epoch 的更新都可以靠重要性采样修正。
 
-> **💡 $\delta_t$ 用了 V 算 advantage，$L_{vf}$ 又更新 V——不矛盾吗？**
+> **💡 $`\delta_t`$ 用了 V 算 advantage，$`L_{vf}`$ 又更新 V——不矛盾吗？**
 >
-> 不矛盾。Phase 2 用**当前冻结的 V** 算出所有 $\delta_t$、$A_t$、$R_t$，算完后这些数值就写死了，成为固定的 target。Phase 3 拿这些固定的 $R_t$ 当回归标签去更新 V 参数，使其预测更准。V 追的不是自己，而是一个**比自己更好的估计**。
+> 不矛盾。Phase 2 用**当前冻结的 V** 算出所有 $`\delta_t`$、$`A_t`$、$`R_t`$，算完后这些数值就写死了，成为固定的 target。Phase 3 拿这些固定的 $`R_t`$ 当回归标签去更新 V 参数，使其预测更准。V 追的不是自己，而是一个**比自己更好的估计**。
 >
-> **$R_t$ 和 $V(s_t)$ 的本质区别：**
+> **$`R_t`$ 和 $`V(s_t)`$ 的本质区别：**
 >
 > | | 含义 | 信息来源 |
 > |---|---|---|
-> | $V(s_t) = \mathbb{E}_\pi[G_t \mid s_t]$ | 从 $s_t$ 出发，**所有可能轨迹**的期望回报 | 纯靠网络参数预测 |
-> | $R_t = A_t + V(s_t)$ | 沿着**实际采样的这一条轨迹**算出的回报估计 | 真实奖励 $r_t, r_{t+1}, \ldots$ + V 的 bootstrap |
+> | $`V(s_t) = \mathbb{E}_\pi[G_t \mid s_t]`$ | 从 $`s_t`$ 出发，**所有可能轨迹**的期望回报 | 纯靠网络参数预测 |
+> | $`R_t = A_t + V(s_t)`$ | 沿着**实际采样的这一条轨迹**算出的回报估计 | 真实奖励 $`r_t, r_{t+1}, \ldots`$ + V 的 bootstrap |
 >
-> $V$ 是对所有可能未来的**期望**（一个统计量），$R_t$ 是这个期望的**一个样本**（来自实际跑的轨迹，包含了真实奖励信息，所以比 V 的盲猜更接近真实值）。$L_{vf} = (V_\theta(s) - R_t)^2$ 就是经典的**用样本做回归逼近期望**——大量样本的 $R_t$ 取平均后趋向真实的 $\mathbb{E}[G_t|s_t]$，V 通过最小化 MSE 逐渐学到这个期望。
+> $V$ 是对所有可能未来的**期望**（一个统计量），$`R_t`$ 是这个期望的**一个样本**（来自实际跑的轨迹，包含了真实奖励信息，所以比 V 的盲猜更接近真实值）。$`L_{vf} = (V_\theta(s) - R_t)^2`$ 就是经典的**用样本做回归逼近期望**——大量样本的 $`R_t`$ 取平均后趋向真实的 $`\mathbb{E}[G_t|s_t]`$，V 通过最小化 MSE 逐渐学到这个期望。
 >
-> 类比天气预报：$V(s_t)$ = 模型预测"明天 25°C"；$R_t$ = 实际观测到"白天 23°C" + 模型对后天的预测，修正后得到更准的估计。用修正值当标签更新模型，让它下次预测更准。
+> 类比天气预报：$`V(s_t)`$ = 模型预测"明天 25°C"；$`R_t`$ = 实际观测到"白天 23°C" + 模型对后天的预测，修正后得到更准的估计。用修正值当标签更新模型，让它下次预测更准。
 
 > **💡 Entropy 是怎么算的？**
 >
@@ -794,7 +798,7 @@ for iteration in range(1, max_iter + 1):
 > entropy = -(probs * probs.log()).sum(dim=-1).mean()
 > ```
 >
-> **连续动作空间**（如机器人控制），策略通常输出高斯分布 $\mathcal{N}(\mu, \sigma^2)$，熵有解析解：
+> **连续动作空间**（如机器人控制），策略通常输出高斯分布 $`\mathcal{N}(\mu, \sigma^2)`$，熵有解析解：
 >
 > ```math
 > H = \frac{1}{2} \log(2\pi e \sigma^2)
@@ -805,11 +809,11 @@ for iteration in range(1, max_iter + 1):
 > entropy = 0.5 * torch.log(2 * math.pi * math.e * std ** 2).sum(dim=-1).mean()
 > ```
 >
-> 在 PPO loss 中 `loss = -L_clip + c1 * L_vf - c2 * L_ent`，注意符号是 **$-c_2$**，即**最小化 loss = 最大化熵**。这是探索正则项：防止策略过早坍缩到某个动作，$c_2$ 通常取 0.01 左右。
+> 在 PPO loss 中 `loss = -L_clip + c1 * L_vf - c2 * L_ent`，注意符号是 **$`-c_2`$**，即**最小化 loss = 最大化熵**。这是探索正则项：防止策略过早坍缩到某个动作，$`c_2`$ 通常取 0.01 左右。
 >
-> **计算粒度**：entropy 是在**每个 minibatch 内**算的——对 batch 中每个样本 $(s,a)$ 算出该状态下的策略分布熵 $H(\pi_\theta(\cdot|s_i))$，然后取 batch 平均：$L_{ent} = \frac{1}{|B|}\sum_{i \in B} H(\pi_\theta(\cdot|s_i))$。它和 `L_clip`、`L_vf` 一起在同一个 forward pass 里算出，一起 backprop。
+> **计算粒度**：entropy 是在**每个 minibatch 内**算的——对 batch 中每个样本 $(s,a)$ 算出该状态下的策略分布熵 $`H(\pi_\theta(\cdot|s_i))`$，然后取 batch 平均：$`L_{ent} = \frac{1}{|B|}\sum_{i \in B} H(\pi_\theta(\cdot|s_i))`$。它和 `L_clip`、`L_vf` 一起在同一个 forward pass 里算出，一起 backprop。
 >
-> **输入是完整分布，不是选中动作的概率**：`L_clip` 和 `L_vf` 只用选中动作 $a_t$ 的概率（标量），但 entropy 必须看**完整动作概率分布** $\pi_\theta(\cdot|s)$（向量），因为熵衡量的是"策略有多随机"，光看最终选了哪个动作算不出来：
+> **输入是完整分布，不是选中动作的概率**：`L_clip` 和 `L_vf` 只用选中动作 $`a_t`$ 的概率（标量），但 entropy 必须看**完整动作概率分布** $`\pi_\theta(\cdot|s)`$（向量），因为熵衡量的是"策略有多随机"，光看最终选了哪个动作算不出来：
 >
 > ```python
 > probs = policy_net(s)                          # [batch, num_actions] ← 完整分布
@@ -851,7 +855,7 @@ $\beta$ 根据实际 KL 自适应调整（KL 太大就调大 $\beta$ ）。实�
 \tilde r_t = r_t - \beta \log \frac{\pi_\theta(a_t|s_t)}{\pi_{\text{ref}}(a_t|s_t)}
 ```
 
-> **💡 这里的 $\log \frac{\pi_\theta}{\pi_{\text{ref}}}$ 不是标准 KL，而是 KL 的单样本估计**
+> **💡 这里的 $`\log \frac{\pi_\theta}{\pi_{\text{ref}}}`$ 不是标准 KL，而是 KL 的单样本估计**
 >
 > **KL 散度的含义：** KL 散度（Kullback-Leibler divergence）衡量的是"用分布 $q$ 去近似分布 $p$ 时，**额外浪费了多少信息量**"。
 >
@@ -861,9 +865,9 @@ $\beta$ 根据实际 KL 自适应调整（KL 太大就调大 $\beta$ ）。实�
 > \text{KL}(p \| q) = H(p,q) - H(p) = \sum_x p(x) \log \frac{p(x)}{q(x)}
 > ```
 >
-> - **统计角度**：$\log \frac{p(x)}{q(x)}$ 是每个样本 $x$ 的**对数似然比**——"这个样本在 $p$ 下有多可能 vs 在 $q$ 下有多可能"。KL 就是这个对数似然比在 $p$ 下的期望。KL = 0 当且仅当 $p = q$，越大说明两个分布差异越大。
+> - **统计角度**：$`\log \frac{p(x)}{q(x)}`$ 是每个样本 $x$ 的**对数似然比**——"这个样本在 $p$ 下有多可能 vs 在 $q$ 下有多可能"。KL 就是这个对数似然比在 $p$ 下的期望。KL = 0 当且仅当 $p = q$，越大说明两个分布差异越大。
 >
-> - **直觉**：KL 不是"距离"（不对称，$`\text{KL}(p\|q) \neq \text{KL}(q\|p)`$），更像"用 $q$ 冒充 $p$ 的代价"。在 RLHF 里，$`\text{KL}(\pi_\theta \| \pi_{\text{ref}})`$ 衡量的就是"当前策略 $\pi_\theta$ 相对于 reference 策略偏离了多少"。
+> - **直觉**：KL 不是"距离"（不对称，$`\text{KL}(p\|q) \neq \text{KL}(q\|p)`$），更像"用 $q$ 冒充 $p$ 的代价"。在 RLHF 里，$`\text{KL}(\pi_\theta \| \pi_{\text{ref}})`$ 衡量的就是"当前策略 $`\pi_\theta`$ 相对于 reference 策略偏离了多少"。
 >
 > 标准 KL 散度是对**所有动作求和**的期望：
 >
@@ -871,38 +875,38 @@ $\beta$ 根据实际 KL 自适应调整（KL 太大就调大 $\beta$ ）。实�
 > \text{KL}(\pi_\theta \| \pi_{\text{ref}}) = \sum_a \pi_\theta(a|s) \log \frac{\pi_\theta(a|s)}{\pi_{\text{ref}}(a|s)}
 > ```
 >
-> 而公式里的 $\log \frac{\pi_\theta(a_t|s_t)}{\pi_{\text{ref}}(a_t|s_t)}$ 只取了**采样到的那一个动作** $a_t$ 的 log ratio。之所以这样做是因为 RLHF 本身就在按 $\pi_\theta$ 采样轨迹，取期望后恰好恢复完整 KL：
+> 而公式里的 $`\log \frac{\pi_\theta(a_t|s_t)}{\pi_{\text{ref}}(a_t|s_t)}`$ 只取了**采样到的那一个动作** $`a_t`$ 的 log ratio。之所以这样做是因为 RLHF 本身就在按 $`\pi_\theta`$ 采样轨迹，取期望后恰好恢复完整 KL：
 >
 > ```math
 > \mathbb{E}_{a_t \sim \pi_\theta}\left[\log \frac{\pi_\theta(a_t|s_t)}{\pi_{\text{ref}}(a_t|s_t)}\right] = \text{KL}(\pi_\theta \| \pi_{\text{ref}})
 > ```
 >
-> 所以逐 token 扣 log ratio 进 reward，**期望意义下等价于减去 $\beta \cdot \text{KL}$**，无需显式对完整词表求和。
+> 所以逐 token 扣 log ratio 进 reward，**期望意义下等价于减去 $`\beta \cdot \text{KL}`$**，无需显式对完整词表求和。
 >
 > **这里用的是 Reverse KL，不是 Forward KL**
 >
 > Forward/Reverse 的命名来自变分推断传统，以**谁是 target（固定的）、谁是 model（要优化的）**为基准：
 >
-> - **target 分布 $p$**：固定不动的参考（RLHF 里是 $\pi_{\text{ref}}$）
-> - **model 分布 $q$**：正在被优化的（RLHF 里是 $\pi_\theta$）
+> - **target 分布 $p$**：固定不动的参考（RLHF 里是 $`\pi_{\text{ref}}`$）
+> - **model 分布 $q$**：正在被优化的（RLHF 里是 $`\pi_\theta`$）
 > - **Forward KL** $`\text{KL}(p \| q)`$：target 在前 → "正向"，期望在 target 下取
 > - **Reverse KL** $`\text{KL}(q \| p)`$：model 在前 → "反向"，期望在 model 下取
 >
-> RLHF 里 $`\text{KL}(\pi_\theta \| \pi_{\text{ref}})`$ = $`\text{KL}(\text{model} \| \text{target})`$，model 在第一个位置，所以是 reverse KL。原因很自然：RL rollout 本身就在按 $\pi_\theta$ 采样，所以 $`\mathbb{E}_{a \sim \pi_\theta}[\log \frac{\pi_\theta}{\pi_{\text{ref}}}]`$ 可以直接无偏估计。如果要算 forward KL $`\text{KL}(\pi_{\text{ref}} \| \pi_\theta) = \mathbb{E}_{a \sim \pi_{\text{ref}}}[\cdot]`$，就需要从 $\pi_{\text{ref}}$ 采样，但训练循环跑的是 $\pi_\theta$，没法直接估。
+> RLHF 里 $`\text{KL}(\pi_\theta \| \pi_{\text{ref}})`$ = $`\text{KL}(\text{model} \| \text{target})`$，model 在第一个位置，所以是 reverse KL。原因很自然：RL rollout 本身就在按 $`\pi_\theta`$ 采样，所以 $`\mathbb{E}_{a \sim \pi_\theta}[\log \frac{\pi_\theta}{\pi_{\text{ref}}}]`$ 可以直接无偏估计。如果要算 forward KL $`\text{KL}(\pi_{\text{ref}} \| \pi_\theta) = \mathbb{E}_{a \sim \pi_{\text{ref}}}[\cdot]`$，就需要从 $`\pi_{\text{ref}}`$ 采样，但训练循环跑的是 $`\pi_\theta`$，没法直接估。
 >
-> | | Forward KL $\text{KL}(\pi_{\text{ref}} \Vert \pi_\theta)$ | Reverse KL $\text{KL}(\pi_\theta \Vert \pi_{\text{ref}})$ |
+> | | Forward KL $`\text{KL}(\pi_{\text{ref}} \Vert \pi_\theta)`$ | Reverse KL $`\text{KL}(\pi_\theta \Vert \pi_{\text{ref}})`$ |
 > |---|---|---|
 > | KL 第一个参数 | target（固定） | model（优化中） |
-> | 期望在谁下取 | $\pi_{\text{ref}}$（需从 ref 采样） | $\pi_\theta$（RL rollout 天然提供） |
-> | 行为 | mean-seeking：$\pi_\theta$ 覆盖 $\pi_{\text{ref}}$ 所有模式，宁可摊薄也不漏 | mode-seeking：$\pi_\theta$ 集中到 $\pi_{\text{ref}}$ 的高概率区域，不给低概率区域分配概率 |
+> | 期望在谁下取 | $`\pi_{\text{ref}}`$（需从 ref 采样） | $`\pi_\theta`$（RL rollout 天然提供） |
+> | 行为 | mean-seeking：$`\pi_\theta`$ 覆盖 $`\pi_{\text{ref}}`$ 所有模式，宁可摊薄也不漏 | mode-seeking：$`\pi_\theta`$ 集中到 $`\pi_{\text{ref}}`$ 的高概率区域，不给低概率区域分配概率 |
 > | RLHF 适配 | ✗ 无法从 rollout 直接估计 | ✓ 天然可估，且防止策略跑到 ref 不支持的区域（不胡说八道） |
 >
 > **为什么 forward = mean-seeking，reverse = mode-seeking？**
 >
-> - **Forward KL** $\sum p \log \frac{p}{q}$：期望在 $p$ 下取。凡是 $p(x)>0$ 的地方，若 $q(x) \to 0$，则 $\log \frac{p}{q} \to +\infty$，KL 爆炸。所以 $q$ **被迫覆盖 $p$ 的所有模式**——哪怕摊薄概率也不能让任何模式裸露 → mean-seeking（宁可模糊也要全覆盖）。
-> - **Reverse KL** $\sum q \log \frac{q}{p}$：期望在 $q$ 下取。若 $p(x)>0$ 但 $q(x)=0$，贡献为 $0 \cdot \log\frac{0}{p} = 0$，**无惩罚**——$q$ 可以放心忽略 $p$ 的某些模式。但若 $q(x)>0$ 而 $p(x) \to 0$，KL 爆炸——$q$ 绝不能在 $p$ 不支持的地方分配概率 → mode-seeking（锁定 $p$ 的一个高概率模式集中火力）。
+> - **Forward KL** $`\sum p \log \frac{p}{q}`$：期望在 $p$ 下取。凡是 $p(x)\gt 0$ 的地方，若 $q(x) \to 0$，则 $`\log \frac{p}{q} \to +\infty`$，KL 爆炸。所以 $q$ **被迫覆盖 $p$ 的所有模式**——哪怕摊薄概率也不能让任何模式裸露 → mean-seeking（宁可模糊也要全覆盖）。
+> - **Reverse KL** $`\sum q \log \frac{q}{p}`$：期望在 $q$ 下取。若 $p(x)\gt 0$ 但 $q(x)=0$，贡献为 $`0 \cdot \log\frac{0}{p} = 0`$，**无惩罚**——$q$ 可以放心忽略 $p$ 的某些模式。但若 $q(x)\gt 0$ 而 $p(x) \to 0$，KL 爆炸——$q$ 绝不能在 $p$ 不支持的地方分配概率 → mode-seeking（锁定 $p$ 的一个高概率模式集中火力）。
 >
-> **OPD（On-Policy Distillation）常用 Reverse KL：** 学生模型用自己生成的样本（on-policy），天然在 $q_{\text{student}}$ 下采样，直接适配 reverse KL $`\text{KL}(q_{\text{student}} \| p_{\text{teacher}})`$ 的估计。且 mode-seeking 让蒸馏出的模型输出更 sharp、质量更高，不会在 teacher 的多个模式之间模糊平均（如 GKD: Generalized Knowledge Distillation）。
+> **OPD（On-Policy Distillation）常用 Reverse KL：** 学生模型用自己生成的样本（on-policy），天然在 $`q_{\text{student}}`$ 下采样，直接适配 reverse KL $`\text{KL}(q_{\text{student}} \| p_{\text{teacher}})`$ 的估计。且 mode-seeking 让蒸馏出的模型输出更 sharp、质量更高，不会在 teacher 的多个模式之间模糊平均（如 GKD: Generalized Knowledge Distillation）。
 
 末端有 RM 奖励，中间 token 全是 KL 惩罚。这样 GAE 计算出来的 advantage 就同时考虑了"奖励"和"别跑偏"。
 
@@ -910,8 +914,8 @@ $\beta$ 根据实际 KL 自适应调整（KL 太大就调大 $\beta$ ）。实�
 
 ## 6. Actor-Critic 结构
 
-- **Actor**： $\pi_\theta(a|s)$ ，输出动作分布
-- **Critic**： $V_\phi(s)$ ，估计状态价值
+- **Actor**： $`\pi_\theta(a|s)`$ ，输出动作分布
+- **Critic**： $`V_\phi(s)`$ ，估计状态价值
 
 两者通常共享底层网络（LLM 场景里：共享 Transformer，最后接两个 head：一个 LM head，一个 value head）。
 
@@ -921,7 +925,7 @@ shared backbone ──→ │
                     └──── value head ─→ V_φ(s)    (critic)
 ```
 
-Critic 训练目标：拟合 $R_t = A_t^{GAE} + V(s_t)$ （return target）。
+Critic 训练目标：拟合 $`R_t = A_t^{GAE} + V(s_t)`$ （return target）。
 
 ---
 
@@ -983,7 +987,7 @@ PPO 在 LLM 上的痛点：要训练一个和 actor 同等规模的 **value mode
 \hat A_i = \frac{R_i - \text{mean}(R_{1..G})}{\text{std}(R_{1..G})}
 ```
 
-把 $R_{1..G}$ 的均值当 baseline，标准差归一化。
+把 $`R_{1..G}`$ 的均值当 baseline，标准差归一化。
 
 **好处**：
 - **不需要 critic** → 显存 / 计算大幅下降
@@ -1002,12 +1006,12 @@ L^{GRPO} = \mathbb{E}\left[\min(r_t \hat A,\ \text{clip}(r_t, 1-\epsilon, 1+\eps
 >
 > | | **Clip** | **KL 惩罚** |
 > |---|---|---|
-> | 对比对象 | $\pi_\theta$ vs $\pi_{\theta_{old}}$ （每批刷新） | $\pi_\theta$ vs $\pi_{\text{ref}}$ （**全程固定**的 SFT 模型）|
+> | 对比对象 | $`\pi_\theta`$ vs $`\pi_{\theta_{old}}`$ （每批刷新） | $`\pi_\theta`$ vs $`\pi_{\text{ref}}`$ （**全程固定**的 SFT 模型）|
 > | 时间尺度 | **单步**（每个 minibatch） | **全程**（整个 RL 训练） |
 > | 解决问题 | importance sampling 数值失真 | reward hacking / 灾难性遗忘 |
 > | 类比 | "今天最多走 1 公里" | "总位移不能离家太远" |
 >
-> **关键差别**： $\pi_{\theta_{old}}$ 每隔几个 epoch 就被刷新成当前 $\pi_\theta$ ——它**跟着移动**。clip 只管"今天走不远"，但**累积上百次 minibatch + 多轮 rollout， $\pi_\theta$ 可能已经飘到天涯海角**。而 $\pi_{\text{ref}}$ 是**死锚**（通常是 SFT 模型），KL 是把模型拽回它附近的"长程绳子"。
+> **关键差别**： $`\pi_{\theta_{old}}`$ 每隔几个 epoch 就被刷新成当前 $`\pi_\theta`$ ——它**跟着移动**。clip 只管"今天走不远"，但**累积上百次 minibatch + 多轮 rollout， $`\pi_\theta`$ 可能已经飘到天涯海角**。而 $`\pi_{\text{ref}}`$ 是**死锚**（通常是 SFT 模型），KL 是把模型拽回它附近的"长程绳子"。
 >
 > ```
 > π_ref ━━━━━━━ π_θ_old ━━━ π_θ
@@ -1091,16 +1095,16 @@ if step % update_old_every == 0:
 L^{GRPO}(\theta) = \underbrace{\mathbb{E}\Big[\min\big(r_t(\theta) \hat A_t,\ \text{clip}(r_t(\theta), 1{-}\epsilon, 1{+}\epsilon)\hat A_t\big)\Big]}_{\text{policy term}} - \beta \cdot \underbrace{\text{KL}(\pi_\theta \,\|\, \pi_{\text{ref}})}_{\text{KL term}}
 ```
 
-**`logp` 出现的根本原因**：公式里 $r_t$ 和 $\text{KL}$ 都是**概率的比值**，但概率本身数值很小、连乘会下溢——所以工程上**全程在 log 空间运算**，最后只在需要时 `exp` 回去。
+**`logp` 出现的根本原因**：公式里 $`r_t`$ 和 $`\text{KL}`$ 都是**概率的比值**，但概率本身数值很小、连乘会下溢——所以工程上**全程在 log 空间运算**，最后只在需要时 `exp` 回去。
 
 | 公式中的项 | 数学定义 | 代码实现 |
 |---|---|---|
-| $\log \pi_\theta(a_t \mid s_t)$ | 当前策略对采样动作的 log 概率 | `logp_new`（**现算**，梯度沿此流） |
-| $\log \pi_{\theta_{old}}(a_t \mid s_t)$ | 采样时策略的 log 概率 | `logp_old`（rollout 缓存） |
-| $\log \pi_{\text{ref}}(a_t \mid s_t)$ | SFT 模型的 log 概率 | `logp_ref`（现算，但 detach） |
-| $r_t(\theta) = \dfrac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}$ | importance ratio | `ratio = exp(logp_new - logp_old)` ← **log 差→exp = 比值** |
+| $`\log \pi_\theta(a_t \mid s_t)`$ | 当前策略对采样动作的 log 概率 | `logp_new`（**现算**，梯度沿此流） |
+| $`\log \pi_{\theta_{old}}(a_t \mid s_t)`$ | 采样时策略的 log 概率 | `logp_old`（rollout 缓存） |
+| $`\log \pi_{\text{ref}}(a_t \mid s_t)`$ | SFT 模型的 log 概率 | `logp_ref`（现算，但 detach） |
+| $`r_t(\theta) = \dfrac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}`$ | importance ratio | `ratio = exp(logp_new - logp_old)` ← **log 差→exp = 比值** |
 | $`\text{KL}(\pi_\theta \,\Vert\, \pi_{\text{ref}})`$ | 真实定义 $`\mathbb{E}_{\pi_\theta}[\log\frac{\pi_\theta}{\pi_{\text{ref}}}]`$ | k3 无偏估计：`exp(logp_ref - logp_new) - (logp_ref - logp_new) - 1` |
-| $-L^{GRPO}$ | 取负转为最小化 loss | `loss = policy_loss + beta * kl_loss` |
+| $`-L^{GRPO}`$ | 取负转为最小化 loss | `loss = policy_loss + beta * kl_loss` |
 
 **串起来看**：
 ```
@@ -1122,26 +1126,26 @@ logp_new                ├→ KL ≈ exp(Δ) - Δ - 1 ────────�
 \text{KL}(p \,\|\, q) = \mathbb{E}_{x \sim p}\!\left[\log \tfrac{p(x)}{q(x)}\right] = \sum_x p(x) \log \tfrac{p(x)}{q(x)} \;\;\geq 0
 ```
 
-**套到 LLM 上**：每个 token 位置 $s_t$ 都是个词表上的分布 $\pi_\theta(\cdot|s_t)$ ，单点 KL 是：
+**套到 LLM 上**：每个 token 位置 $`s_t`$ 都是个词表上的分布 $`\pi_\theta(\cdot|s_t)`$ ，单点 KL 是：
 
 ```math
 \text{KL}\big(\pi_\theta(\cdot|s_t) \,\|\, \pi_{\text{ref}}(\cdot|s_t)\big) = \sum_{v=1}^{V} \pi_\theta(v|s_t) \log \tfrac{\pi_\theta(v|s_t)}{\pi_{\text{ref}}(v|s_t)}
 ```
 
-**痛点**：词表 $V$ 几万到十几万，对所有 $V$ 个 token 精确求和**太贵**。所以必须用**蒙特卡洛估计**——只用已采样的那个 token 估 KL。记 $\Delta_t = \log \pi_{\text{ref}}(a_t|s_t) - \log \pi_\theta(a_t|s_t)$ ，三种估计器：
+**痛点**：词表 $V$ 几万到十几万，对所有 $V$ 个 token 精确求和**太贵**。所以必须用**蒙特卡洛估计**——只用已采样的那个 token 估 KL。记 $`\Delta_t = \log \pi_{\text{ref}}(a_t|s_t) - \log \pi_\theta(a_t|s_t)`$ ，三种估计器：
 
 | 估计器 | 公式 | 无偏？ | 非负？ |
 |---|---|---|---|
 | k1 | $-\Delta$ | ✅ | ❌ 可能为负 |
-| k2 | $\tfrac{1}{2}\Delta^2$ | ❌ | ✅ |
+| k2 | $`\tfrac{1}{2}\Delta^2`$ | ❌ | ✅ |
 | **k3** ⭐ | $e^\Delta - \Delta - 1$ | ✅ | ✅ |
 
-> **🔍 怎么判断"无偏"？** 定义： $\hat\theta$ 是 $\theta$ 的无偏估计 ⟺ $\mathbb{E}[\hat\theta] = \theta$ 。**操作上只有一个动作**：把估计器套上 $`\mathbb{E}_{a \sim \pi_\theta}[\cdot]`$ 展开求和，看能不能化简成真值 $\text{KL}$ 。
-> - **k1**： $\mathbb{E}[-\Delta] = \text{KL}$ ，直接就是 KL 的定义 ✅
-> - **k2**： $\mathbb{E}[\tfrac{1}{2}\Delta^2] = \tfrac{1}{2}(\text{Var}(\Delta) + \text{KL}^2) \neq \text{KL}$ ❌（ $\Delta^2$ 是非线性，**期望和平方不能交换**）
+> **🔍 怎么判断"无偏"？** 定义： $\hat\theta$ 是 $\theta$ 的无偏估计 ⟺ $`\mathbb{E}[\hat\theta] = \theta`$ 。**操作上只有一个动作**：把估计器套上 $`\mathbb{E}_{a \sim \pi_\theta}[\cdot]`$ 展开求和，看能不能化简成真值 $`\text{KL}`$ 。
+> - **k1**： $`\mathbb{E}[-\Delta] = \text{KL}`$ ，直接就是 KL 的定义 ✅
+> - **k2**： $`\mathbb{E}[\tfrac{1}{2}\Delta^2] = \tfrac{1}{2}(\text{Var}(\Delta) + \text{KL}^2) \neq \text{KL}`$ ❌（ $\Delta^2$ 是非线性，**期望和平方不能交换**）
 > - **k3**：见下方推导
 
-**k3 凭什么又无偏又非负？** 利用恒等式 $`\mathbb{E}_{a\sim\pi_\theta}\!\big[\tfrac{\pi_{\text{ref}}(a)}{\pi_\theta(a)}\big] = \sum_a \pi_{\text{ref}}(a) = 1`$ ，所以 $\mathbb{E}[e^\Delta] = 1$ ；又 $\mathbb{E}[\Delta] = -\text{KL}$ ，相减刚好 $\mathbb{E}[e^\Delta - \Delta - 1] = \text{KL}$ 。又因 $e^x \geq x+1$ 恒成立，k3 ≥ 0。**完美。**
+**k3 凭什么又无偏又非负？** 利用恒等式 $`\mathbb{E}_{a\sim\pi_\theta}\!\big[\tfrac{\pi_{\text{ref}}(a)}{\pi_\theta(a)}\big] = \sum_a \pi_{\text{ref}}(a) = 1`$ ，所以 $`\mathbb{E}[e^\Delta] = 1`$ ；又 $`\mathbb{E}[\Delta] = -\text{KL}`$ ，相减刚好 $`\mathbb{E}[e^\Delta - \Delta - 1] = \text{KL}`$ 。又因 $e^x \geq x+1$ 恒成立，k3 ≥ 0。**完美。**
 
 > **🤔 那为什么不直接用 k1？** 它单次采样可能 < 0（虽然均值是 KL ≥ 0），梯度忽正忽负，数值抖动大。k3 在**每次采样**上都保证非负，又无偏又稳——所以胜出。
 
@@ -1153,13 +1157,13 @@ kl_k3 = torch.exp(delta) - delta - 1         # 每个 token 一个非负标量
 kl_loss = kl_k3.mean()
 ```
 
-> 💡 **直觉**： $\Delta_t$ 是这个 token 在 ref 模型和当前模型下的 log 概率差。如果 ref 比当前更爱这个 token（ $\Delta > 0$ ），说明 $\pi_\theta$ 偏离了 ref， $e^\Delta - \Delta - 1$ 给出正惩罚；偏离越大惩罚越重。整条序列把所有 token 的 k3 加起来，就是 sequence-level KL。
+> 💡 **直觉**： $`\Delta_t`$ 是这个 token 在 ref 模型和当前模型下的 log 概率差。如果 ref 比当前更爱这个 token（ $\Delta \gt 0$ ），说明 $`\pi_\theta`$ 偏离了 ref， $e^\Delta - \Delta - 1$ 给出正惩罚；偏离越大惩罚越重。整条序列把所有 token 的 k3 加起来，就是 sequence-level KL。
 
 **几个关键细节**：
 
 - **没有 critic / value head**：和 PPO 最大的区别，省一半显存
 - **`logp_old` 不用现算！** 在 rollout 阶段 `policy_old.generate()` 时模型已经 forward 过一遍，**顺手把每个采样 token 的 log prob 存下来**即可；训练时直接当数据读取。`logp_new` 和 `logp_ref` 才需要现算 forward
-- **`logp_new` 怎么从 logits 算出来？** 网络输出 `y = [B, T, V]` 是每个位置上对整个词表的"原始分数"。两步即可：① `log_softmax(y)` 归一化成合法 log 概率分布 $\log p(v|s_t) = y_{t,v} - \log\sum_j e^{y_{t,j}}$ （用 log-sum-exp 数值稳定，**不要写成 `log(softmax(...))`**）；② `gather` 按"实际采样到的 token id"抠出对应那一个 log 概率。**和算 cross-entropy loss 的前两步完全一样**——这就是为什么 RL 在代码上看起来"就是加权监督学习"
+- **`logp_new` 怎么从 logits 算出来？** 网络输出 `y = [B, T, V]` 是每个位置上对整个词表的"原始分数"。两步即可：① `log_softmax(y)` 归一化成合法 log 概率分布 $`\log p(v|s_t) = y_{t,v} - \log\sum_j e^{y_{t,j}}`$ （用 log-sum-exp 数值稳定，**不要写成 `log(softmax(...))`**）；② `gather` 按"实际采样到的 token id"抠出对应那一个 log 概率。**和算 cross-entropy loss 的前两步完全一样**——这就是为什么 RL 在代码上看起来"就是加权监督学习"
 - `policy_old` 和 `policy_ref` 是**两个不同的冻结模型**：前者每隔几步刷新（控单步幅度），后者全程不变（防长期漂移）。**实际部署中 `policy_old` 甚至不需要常驻显存**——它只在 rollout 时被用一次，logp 一旦缓存就可以释放
 - `advantages` 在 **sequence 级**算，但**广播到所有 token** —— 一条响应里每个 token 共享同一个 advantage（这也是 Dr. GRPO 和 DAPO 后续争议的点）
 - KL 用 **k3 无偏估计**而不是 $\log(p/q)$ ，数值更稳
@@ -1193,7 +1197,7 @@ GRPO 在 DeepSeek-R1 中大放异彩，但很快被发现存在多个隐藏问�
 原 PPO/GRPO 的 clip 上下对称（ $[1-\epsilon, 1+\epsilon]$ ），但**"提升一个低概率正确动作的概率"和"压低一个高概率错误动作的概率"重要性不同**——前者对探索更关键。DAPO 把上界放宽：
 
 ```math
-\text{clip}(r_t, 1-\epsilon_{\text{low}}, 1+\epsilon_{\text{high}}),\quad \epsilon_{\text{high}} > \epsilon_{\text{low}}
+\text{clip}(r_t, 1-\epsilon_{\text{low}}, 1+\epsilon_{\text{high}}),\quad \epsilon_{\text{high}} \gt \epsilon_{\text{low}}
 ```
 
 > 直觉：**鼓励"敢于变化"，限制"过度退缩"** ——避免模型早早收敛、丢失探索多样性。
@@ -1208,7 +1212,7 @@ GRPO 的 loss 在 **sequence 级**取平均（先按 token 平均、再按样本
 
 **④ Overlong Reward Shaping（过长样本软惩罚）**
 
-**问题来源**：训练时为了控显存/吞吐，必须设最大生成长度 $L_{\max}$ （如 16K token）。超过就被**硬截断**，但接下来 reward 怎么给？
+**问题来源**：训练时为了控显存/吞吐，必须设最大生成长度 $`L_{\max}`$ （如 16K token）。超过就被**硬截断**，但接下来 reward 怎么给？
 
 - ❌ **直接判错**（reward = 0 或 -1）：那些"快答出来但刚好被截断"的样本被冤枉了——其实推理路径是对的，只是没空间写完
 - ❌ **丢掉这条样本**：浪费昂贵的 rollout 计算，且引入"长样本被系统性删除"的数据偏置
@@ -1217,17 +1221,17 @@ GRPO 的 loss 在 **sequence 级**取平均（先按 token 平均、再按样本
 
 **DAPO 的做法：渐进式软惩罚**
 
-设两个阈值： $L_{\text{cache}} < L_{\max}$ （如 $L_{\text{cache}} = L_{\max} - 4096$ ）。给每个样本加一个**长度惩罚项**：
+设两个阈值： $`L_{\text{cache}} \lt L_{\max}`$ （如 $`L_{\text{cache}} = L_{\max} - 4096`$ ）。给每个样本加一个**长度惩罚项**：
 
 ```math
 R_{\text{len}}(L) = \begin{cases}
 0 & L \leq L_{\text{cache}} \quad\text{（正常区间，不干预）} \\
--\dfrac{L - L_{\text{cache}}}{L_{\max} - L_{\text{cache}}} & L_{\text{cache}} < L < L_{\max} \quad\text{（缓冲区，线性递增惩罚）} \\
+-\dfrac{L - L_{\text{cache}}}{L_{\max} - L_{\text{cache}}} & L_{\text{cache}} \lt L \lt L_{\max} \quad\text{（缓冲区，线性递增惩罚）} \\
 -1 & L \geq L_{\max} \quad\text{（满惩罚）}
 \end{cases}
 ```
 
-最终 reward = $R_{\text{RM}} + R_{\text{len}}$ ，进入后续 GRPO advantage 计算。
+最终 reward = $`R_{\text{RM}} + R_{\text{len}}`$ ，进入后续 GRPO advantage 计算。
 
 ```
 惩罚强度
@@ -1241,8 +1245,8 @@ R_{\text{len}}(L) = \begin{cases}
 
 **为什么这样设计有效**：
 
-1. **平滑过渡而非硬悬崖**：模型在接近 $L_{\max}$ 时**逐步**收到"该收尾了"的信号，而不是在 $L_{\max}$ 处突然从"无惩罚"跳到"满惩罚"——梯度方向更稳定
-2. **保留"真值得长"的样本**：在 $L_{\text{cache}}$ 以内完成的长推理**不受惩罚**，模型不会被错误地教成"短就是好"
+1. **平滑过渡而非硬悬崖**：模型在接近 $`L_{\max}`$ 时**逐步**收到"该收尾了"的信号，而不是在 $`L_{\max}`$ 处突然从"无惩罚"跳到"满惩罚"——梯度方向更稳定
+2. **保留"真值得长"的样本**：在 $`L_{\text{cache}}`$ 以内完成的长推理**不受惩罚**，模型不会被错误地教成"短就是好"
 3. **区分"快截断" vs "真错"**：缓冲区的样本仍有部分 reward 信号，避免被冤枉的样本主导梯度
 4. **保留 reasoning 能力**：这是为什么 DAPO 在长 CoT 数学任务上稳定大幅领先 GRPO 的关键之一
 
@@ -1254,7 +1258,7 @@ R_{\text{len}}(L) = \begin{cases}
 
 **① 长度偏置：错误回答越长，loss 越小**
 
-GRPO 把每个回答的 loss 按其 token 数 $|o_i|$ 归一化。结果：
+GRPO 把每个回答的 loss 按其 token 数 $`|o_i|`$ 归一化。结果：
 - 一个**错误**但**很长**的回答 → 单 token 梯度被稀释 → 模型受到的惩罚反而**轻** → **鼓励模型把错答案写得更长**
 - 一个**正确**但**很长**的回答 → 单 token 梯度被稀释 → 鼓励的力度反而**弱**
 
@@ -1262,15 +1266,15 @@ GRPO 把每个回答的 loss 按其 token 数 $|o_i|$ 归一化。结果：
 
 | 做法 | 公式（核心部分） | 每 token 影响力 |
 |---|---|---|
-| GRPO | $\dfrac{1}{G}\sum_i \dfrac{1}{\lvert o_i \rvert}\sum_t \ell_{i,t}$ | ❌ 长回答被稀释 → 鼓励写长 |
-| DAPO | $\dfrac{1}{\sum_i \lvert o_i \rvert}\sum_i\sum_t \ell_{i,t}$ | ✅ 所有 token 拍平求平均，**每 token 一票** |
-| **Dr. GRPO** | $\dfrac{1}{G \cdot L_{\max}}\sum_i\sum_t \ell_{i,t}$ | ✅ 用**常数** $L_{\max}$ 归一化，每 token 一票且分母不随 batch 波动，**训练尺度更稳** |
+| GRPO | $`\dfrac{1}{G}\sum_i \dfrac{1}{\lvert o_i \rvert}\sum_t \ell_{i,t}`$ | ❌ 长回答被稀释 → 鼓励写长 |
+| DAPO | $`\dfrac{1}{\sum_i \lvert o_i \rvert}\sum_i\sum_t \ell_{i,t}`$ | ✅ 所有 token 拍平求平均，**每 token 一票** |
+| **Dr. GRPO** | $`\dfrac{1}{G \cdot L_{\max}}\sum_i\sum_t \ell_{i,t}`$ | ✅ 用**常数** $`L_{\max}`$ 归一化，每 token 一票且分母不随 batch 波动，**训练尺度更稳** |
 
-> **共识**：必须**去掉 per-sample 长度归一化**；至于用"batch 总 token 数"还是"常数 $L_{\max}$ "做分母，DAPO 和 Dr. GRPO 各执一词，工程上都能 work。
+> **共识**：必须**去掉 per-sample 长度归一化**；至于用"batch 总 token 数"还是"常数 $`L_{\max}`$ "做分母，DAPO 和 Dr. GRPO 各执一词，工程上都能 work。
 
 **② 难度偏置：用 std 归一化会扭曲组间权重**
 
-$\hat A_i = (R_i - \text{mean}) / \text{std}$ 里的 std 归一化让"组内方差小的题"（要么全对要么全错的简单/极难题）**被放大权重**，"方差大的题"（信息量最高的中等难度题）**反而被压低**。
+$`\hat A_i = (R_i - \text{mean}) / \text{std}`$ 里的 std 归一化让"组内方差小的题"（要么全对要么全错的简单/极难题）**被放大权重**，"方差大的题"（信息量最高的中等难度题）**反而被压低**。
 
 **修正**：去掉 std 归一化，只减均值（保留 baseline 的方差缩减作用，去掉错误的重加权）。
 
@@ -1282,7 +1286,7 @@ $\hat A_i = (R_i - \text{mean}) / \text{std}$ 里的 std 归一化让"组内方�
 
 ### 10.3 REINFORCE++（OpenRLHF, 2025.01）—— 用 batch 级归一化代替组内归一化
 
-**痛点**：GRPO 的 advantage $\hat A_i = (R_i - \text{mean})/\text{std}$ **只在每个 prompt 的 G 个回答内归一化**。当组内只有几个样本时，mean/std 都是不准的估计，且组间尺度可能差异很大，导致：
+**痛点**：GRPO 的 advantage $`\hat A_i = (R_i - \text{mean})/\text{std}`$ **只在每个 prompt 的 G 个回答内归一化**。当组内只有几个样本时，mean/std 都是不准的估计，且组间尺度可能差异很大，导致：
 - **过拟合**：用 30 个 AIME 题训 GRPO，训练 acc 95% 但测试 Pass@1 = 0%
 - **隐性偏差**：std 是有偏估计（Dr. GRPO 也指出过）
 
@@ -1300,7 +1304,7 @@ $\hat A_i = (R_i - \text{mean}) / \text{std}$ 里的 std 归一化让"组内方�
 
 | 项目 | **GRPO** | **REINFORCE++** | 直觉 |
 |---|---|---|---|
-| **KL 注入位置** | sequence-level，作为独立 loss 项 $\beta \cdot \text{KL}$ | **per-token reward**： $\tilde r_t = r_t - \beta \cdot \text{KL}_t$ | 把 KL 揉进每个 token 的 reward → KL 走 advantage 估计 → 长序列**自然累计更多 KL 惩罚**，credit assignment 更细 |
+| **KL 注入位置** | sequence-level，作为独立 loss 项 $`\beta \cdot \text{KL}`$ | **per-token reward**： $`\tilde r_t = r_t - \beta \cdot \text{KL}_t`$ | 把 KL 揉进每个 token 的 reward → KL 走 advantage 估计 → 长序列**自然累计更多 KL 惩罚**，credit assignment 更细 |
 | **PPO clip** | ✅ 有 | ✅ 保留 | 信任域约束依然必要，没必要重新发明 |
 | **是否必须分组** | ✅ 必须 G 条/prompt | ❌ 纯 REINFORCE++ **不分组**（每 prompt 1 条）；REINFORCE++ w/ Baseline 才保留分组 | 不分组时 rollout 成本降 G 倍；prompt 多样性高时反而更优 |
 
@@ -1328,14 +1332,14 @@ $\hat A_i = (R_i - \text{mean}) / \text{std}$ 里的 std 归一化让"组内方�
 >
 > | | GRPO | REINFORCE++ |
 > |---|---|---|
-> | KL 梯度路径 | 直接落到位置 50 的 logp 上 | 通过 $\tilde r_{50} \to \hat A_t$ 影响 **位置 1~50** 的 logp |
+> | KL 梯度路径 | 直接落到位置 50 的 logp 上 | 通过 $`\tilde r_{50} \to \hat A_t`$ 影响 **位置 1~50** 的 logp |
 > | 作用范围 | 只在第 50 个 token 上"拉向 ref" | 第 1~50 个 token 的 advantage 都被拉低 |
 > | 含义 | **局部正则化**："这个位置的分布偏了，拉回来" | **回溯归因**："是前面的决策导致走到这个高 KL 状态，前面也要改" |
 > | 类比 | "这道题答错了，扣这道题分" | "这道题错是因为前面理解错，前面也要重做" |
 >
 > **🔑 一句话核心**：REINFORCE++ 把 KL 当作**负 reward**，从而让 KL **自动享受 advantage 估计的 credit assignment 机制**（reward-to-go、因果性、GAE 折扣等都自动适用于 KL）。GRPO 的 KL 则是个外挂正则项，只做局部"拉回 ref"。
 >
-> **"长序列自然累计更多 KL 惩罚"**：在 REINFORCE++ 里， $\hat A_t = \sum_{t'\geq t}\tilde r_{t'}$ ，长回答里的 KL 通过累加传到前面所有位置 → 模型对长序列的漂移更敏感（防长 CoT "越想越歪"）。
+> **"长序列自然累计更多 KL 惩罚"**：在 REINFORCE++ 里， $`\hat A_t = \sum_{t'\geq t}\tilde r_{t'}`$ ，长回答里的 KL 通过累加传到前面所有位置 → 模型对长序列的漂移更敏感（防长 CoT "越想越歪"）。
 
 **🎯 一句话**：REINFORCE++ 论证了"GRPO 的组内归一化不是必需的，全局归一化反而更稳更通用"。
 
@@ -1346,7 +1350,7 @@ $\hat A_i = (R_i - \text{mean}) / \text{std}$ 里的 std 归一化让"组内方�
 > | 项目 | **DAPO** | **REINFORCE++** |
 > |---|---|---|
 > | 改造对象 | **Loss 归一化**（算完 advantage 之后） | **Advantage 归一化**（算 advantage 本身）|
-> | Advantage 怎么算 | **组内** $(R-\text{mean}_G)/\text{std}_G$ （同 GRPO） | **全局** $`(R-\text{mean}_{\text{batch}})/\text{std}_{\text{batch}}`$ |
+> | Advantage 怎么算 | **组内** $`(R-\text{mean}_G)/\text{std}_G`$ （同 GRPO） | **全局** $`(R-\text{mean}_{\text{batch}})/\text{std}_{\text{batch}}`$ |
 > | 解决问题 | 长回答 token 被稀释 | 组间 baseline 信号不一致 |
 >
 > ```
@@ -1371,7 +1375,7 @@ ByteDance 团队认为 critic-free 方法在长推理任务上有**理论天花�
 **但 critic 在 LLM 上为什么训不好？** 三个老大难：
 
 1. **长序列上 value 偏差累积**
-   > Critic 通过 TD bootstrap 学习—— $V(s_t)$ 的目标依赖 $V(s_{t+1})$ 的预测。任何一步预测有误差，就**沿着序列向前传**。生成 1000 token 时，误差像滚雪球一样累积，越靠前的位置预测越离谱。
+   > Critic 通过 TD bootstrap 学习—— $`V(s_t)`$ 的目标依赖 $`V(s_{t+1})`$ 的预测。任何一步预测有误差，就**沿着序列向前传**。生成 1000 token 时，误差像滚雪球一样累积，越靠前的位置预测越离谱。
    >
    > 🚗 类比：开车每公里预测一次"到目的地还要多久"。每次预测都用上次预测+本公里实际耗时，**每次预测的小误差会被下一次预测继承**。1000 公里下来，最初的预测早已和现实毫无关系。
 
@@ -1395,12 +1399,12 @@ ByteDance 团队认为 critic-free 方法在长推理任务上有**理论天花�
 > 🏋️ 类比：教练上场前先让球员**自己练几天**，别一上来就跟主队配合——配合得了的前提是个人技能先在线。
 
 **② Decoupled-GAE（policy 和 value 各用一套 GAE）**
-> **🔁 先快速回忆一下 $\lambda$**（GAE 公式 $\hat A_t = \sum_l (\gamma\lambda)^l \delta_{t+l}$ 里的旋钮）：
-> - $\lambda = 0$ ：一步 TD，**完全信 critic** 的 $V(s_{t+1})$ 预测剩下 → 信号平滑（**低方差**），但 $V$ 错了就跟着错（**高偏差**）
+> **🔁 先快速回忆一下 $\lambda$**（GAE 公式 $`\hat A_t = \sum_l (\gamma\lambda)^l \delta_{t+l}`$ 里的旋钮）：
+> - $\lambda = 0$ ：一步 TD，**完全信 critic** 的 $`V(s_{t+1})`$ 预测剩下 → 信号平滑（**低方差**），但 $V$ 错了就跟着错（**高偏差**）
 > - $\lambda = 1$ ：蒙特卡洛，**完全不信 critic**，把所有未来真实 reward 都加进来 → 真实（**低偏差**），但每条轨迹差异大（**高方差**）
 > - $\lambda \in (0,1)$ ：在两者间插值——"信 $V$ 几分、信现实几分"的连续旋钮
 >
-> **💡 等等，训 critic 和 $\lambda$ 有什么关系？** Critic 训练是个 MSE 回归 $L_V = (V_\phi(s_t) - V_{\text{target}})^2$ ，但 **target 怎么算？答案就是用 $\lambda$ 构造**：
+> **💡 等等，训 critic 和 $\lambda$ 有什么关系？** Critic 训练是个 MSE 回归 $`L_V = (V_\phi(s_t) - V_{\text{target}})^2`$ ，但 **target 怎么算？答案就是用 $\lambda$ 构造**：
 
 ```math
 V_{\text{target}}^{(\lambda)} = V(s_t) + \hat A_t^{(\lambda)} \;\;\Longrightarrow\;\; \begin{cases} \lambda=0:\; r_t + \gamma V(s_{t+1}) & \text{(bootstrap，target 平滑)} \\ \lambda=1:\; \sum_l \gamma^l r_{t+l} = G_t & \text{(MC，target 真实但嘈杂)} \end{cases}
@@ -1412,8 +1416,8 @@ V_{\text{target}}^{(\lambda)} = V(s_t) + \hat A_t^{(\lambda)} \;\;\Longrightarro
 >
 > | | 用 advantage 干什么 | 怕"偏" | 怕"抖" | 偏好 $\lambda$ |
 > |---|---|---|---|---|
-> | **Policy**（策略梯度） | 当**方向引导**（ $\nabla L \propto \hat{A} \cdot \nabla \log \pi$ ） | ❌ 偏了就**学歪一去不回** | ✅ 抖也无所谓，**平均下来方向对** | **大**（低偏差优先）|
-> | **Value**（MSE 回归） | 当**回归标签**（ $V_{\text{target}} = \hat{A} + V$ ） | ✅ 偏移可后续校正 | ❌ 标签嘈杂 → MSE 被方差支配，**根本学不动** | **小**（低方差优先）|
+> | **Policy**（策略梯度） | 当**方向引导**（ $`\nabla L \propto \hat{A} \cdot \nabla \log \pi`$ ） | ❌ 偏了就**学歪一去不回** | ✅ 抖也无所谓，**平均下来方向对** | **大**（低偏差优先）|
+> | **Value**（MSE 回归） | 当**回归标签**（ $`V_{\text{target}} = \hat{A} + V`$ ） | ✅ 偏移可后续校正 | ❌ 标签嘈杂 → MSE 被方差支配，**根本学不动** | **小**（低方差优先）|
 >
 > 一个共享 $\lambda$ 满足不了两边，互相拖累。
 >
@@ -1421,7 +1425,7 @@ V_{\text{target}}^{(\lambda)} = V(s_t) + \hat A_t^{(\lambda)} \;\;\Longrightarro
 > - **Policy** 像走路找出口、有人指方向：**指错方向（偏差）就完蛋**；**手抖来回晃（方差）多看几次就平均出真方向**
 > - **Value** 像画地图、有人报坐标：**坐标整体偏移（偏差）可整体校正**；**坐标到处乱跳（方差）根本画不出地图**
 >
-> **解法**：直接拆成两个独立的 $\lambda_{\text{policy}}$ （设大，如 0.95~1.0）和 $\lambda_{\text{value}}$ （设小，如 0.5~0.9），**各得其所**。
+> **解法**：直接拆成两个独立的 $`\lambda_{\text{policy}}`$ （设大，如 0.95~1.0）和 $`\lambda_{\text{value}}`$ （设小，如 0.5~0.9），**各得其所**。
 
 **③ Length-adaptive GAE（ $\lambda$ 随序列长度自适应）**
 > **痛点**：固定 $\lambda$ 对所有长度的序列一刀切，但**短序列和长序列对 critic 的信任度应该不同**：
@@ -1436,7 +1440,7 @@ V_{\text{target}}^{(\lambda)} = V(s_t) + \hat A_t^{(\lambda)} \;\;\Longrightarro
 **⑤ Positive Example LM Loss(对答对的样本加个 SFT loss)**
 > **痛点**:数学等困难任务里**正样本极稀少**(可能 1000 个 rollout 只有 30 个答对),而 RL 的学习信号几乎全靠它们——但 RL 一次梯度只能"利用"这些样本一次,**太浪费**。
 >
-> **解法**:对答对的样本**额外加一个标准 SFT-like 的交叉熵 loss**(直接最大化 $\log\pi_\theta$),榨干每个正样本的学习价值。
+> **解法**:对答对的样本**额外加一个标准 SFT-like 的交叉熵 loss**(直接最大化 $`\log\pi_\theta`$),榨干每个正样本的学习价值。
 >
 > 📝 类比：学生**做对**一道难题,不只给奖励,还**让他抄一遍**加深印象——同一个正样本被利用两次。
 
@@ -1459,16 +1463,16 @@ ratio 小 → 推它，步子大一点          case ②/③ → 梯度完整保
 → 永远在推，只是力度不同              → 要么 0 要么完整，"二值开关"
 ```
 
-PPO loss $-\min(r_t \hat A, \text{clip}(r_t)\hat A)$ 在 case ① 时退化成 **纯常数** $-(1+\epsilon)\hat A$ ，整个 loss 不再含 $\theta$ —— 这个 token 在反传时**完全消失**，不是"步子变小"，是"压根不更新"。
+PPO loss $`-\min(r_t \hat A, \text{clip}(r_t)\hat A)`$ 在 case ① 时退化成 **纯常数** $-(1+\epsilon)\hat A$ ，整个 loss 不再含 $\theta$ —— 这个 token 在反传时**完全消失**，不是"步子变小"，是"压根不更新"。
 
 四种情况看清楚：
 
-| 情况 | $\hat A$ | $r_t$ | min 选哪个 | 梯度 | 含义 |
+| 情况 | $\hat A$ | $`r_t`$ | min 选哪个 | 梯度 | 含义 |
 |---|---|---|---|---|---|
-| ① | $> 0$ | $> 1+\epsilon$ | **clipped** | ❌ 零 | "好 token 已推够了 → 完全放弃" |
-| ② | $> 0$ | $< 1-\epsilon$ | unclipped | ✅ 正常 | "好 token 反而掉了 → 继续推涨" |
-| ③ | $< 0$ | $> 1+\epsilon$ | unclipped | ✅ 正常 | "坏 token 反而升了 → 继续推降" |
-| ④ | $< 0$ | $< 1-\epsilon$ | **clipped** | ❌ 零 | "坏 token 已抑制够了 → 完全放弃" |
+| ① | $\gt 0$ | $\gt 1+\epsilon$ | **clipped** | ❌ 零 | "好 token 已推够了 → 完全放弃" |
+| ② | $\gt 0$ | $\lt 1-\epsilon$ | unclipped | ✅ 正常 | "好 token 反而掉了 → 继续推涨" |
+| ③ | $\lt 0$ | $\gt 1+\epsilon$ | unclipped | ✅ 正常 | "坏 token 反而升了 → 继续推降" |
+| ④ | $\lt 0$ | $\lt 1-\epsilon$ | **clipped** | ❌ 零 | "坏 token 已抑制够了 → 完全放弃" |
 
 **关键洞察**：PPO clip 的设计哲学是**消极的单边门控**——"如果你跑出安全区**还往同方向跑**，我就当作没看见你"。这本是 Schulman 2017 为了**廉价近似 TRPO 的 trust region 约束**做的简化，但代价就是 case ①/④ 的"全有或全无"。
 
@@ -1476,21 +1480,21 @@ PPO loss $-\min(r_t \hat A, \text{clip}(r_t)\hat A)$ 在 case ① 时退化成 *
 
 考虑像 "However"、"Wait"、"Recheck"、"Aha" 这些**低概率"分叉 token"**——它们是触发深度推理和自我纠错的关键，但因为概率低、 $\hat A$ 又大，**最容易落入 case ①**：
 
-- **第 1 次更新**：模型学到 "Wait" 是好 token → 概率猛涨， $r_t = 2.0 \gg 1+\epsilon$
+- **第 1 次更新**：模型学到 "Wait" 是好 token → 概率猛涨， $`r_t = 2.0 \gg 1+\epsilon`$
 - **第 2 次更新**起：落入 case ① → **policy 梯度 = 0**
-- 更糟的是： $\pi_\theta$ 此时远大于 $\pi_{\text{ref}}$ → **KL 项反向把它拽回 ref**（ref 本来就不爱这个 token）
+- 更糟的是： $`\pi_\theta`$ 此时远大于 $`\pi_{\text{ref}}`$ → **KL 项反向把它拽回 ref**（ref 本来就不爱这个 token）
 - **净效果**：这个稀缺的有用 token 不仅没被继续鼓励，反而被自己的 KL 制裁掉了
 
 PPO/GRPO 一般 1 个 batch 跑 2-4 步更新，影响有限。**但 MiniMax-M1 跑 16 步更新**，第 1 步后这些关键 token 就被消音 15 步——这就是 CISPO 要救的场景。
 
 > **顺便注意**：这是 PPO clip **整个家族的共同问题**，不止 CISPO 关心：
-> - **DAPO 的 Clip-Higher**：把 $\epsilon_{\text{high}}$ 调大，**推迟**门关上的时机——治标
+> - **DAPO 的 Clip-Higher**：把 $`\epsilon_{\text{high}}`$ 调大，**推迟**门关上的时机——治标
 > - **GSPO**：升到 sequence-level ratio，**用统计平均吸收 token 级波动**——绕过
 > - **CISPO**：从根上换 loss 形式，**让 logp 始终有梯度**——治本
 
-#### 🩹 CISPO 的修法：把 $\log\pi_\theta$ 显式写回 loss
+#### 🩹 CISPO 的修法：把 $`\log\pi_\theta`$ 显式写回 loss
 
-PPO 把 $\theta$ 的依赖**全压在 $r_t$ 这一个通道里**，clip 切了 $r_t$ ， $\theta$ 依赖也就没了。CISPO 改成"权重 + 显式 logp"形式：
+PPO 把 $\theta$ 的依赖**全压在 $`r_t`$ 这一个通道里**，clip 切了 $`r_t`$ ， $\theta$ 依赖也就没了。CISPO 改成"权重 + 显式 logp"形式：
 
 ```math
 L_{\text{CISPO}} = -\mathbb{E}\Big[\underbrace{\text{stop\_grad}(\min(r_t,\ \epsilon_{\text{high}}))}_{w_t,\text{ 常数权重}} \cdot \hat A_t \cdot \underbrace{\log \pi_\theta(a_t|s_t)}_{\text{显式可导}}\Big]
@@ -1504,9 +1508,9 @@ loss = -(weight * advantage * logp_new).mean()         # logp_new 显式保留
 
 **关键性质**：
 
-- 即使权重 $w_t$ 被卡在 $\epsilon_{\text{high}}$ （case ①），梯度仍为 $-\epsilon_{\text{high}} \cdot \hat A_t \cdot \nabla\log\pi_\theta \neq 0$
-- **$\log\pi_\theta$ 始终在 loss 里** → $\theta$ 的依赖永远不会被 clip 切断
-- 步长被 $\epsilon_{\text{high}}$ 控制，**不会失控**；但方向**始终在推这个 token 涨**
+- 即使权重 $`w_t`$ 被卡在 $`\epsilon_{\text{high}}`$ （case ①），梯度仍为 $`-\epsilon_{\text{high}} \cdot \hat A_t \cdot \nabla\log\pi_\theta \neq 0`$
+- **$`\log\pi_\theta`$ 始终在 loss 里** → $\theta$ 的依赖永远不会被 clip 切断
+- 步长被 $`\epsilon_{\text{high}}`$ 控制，**不会失控**；但方向**始终在推这个 token 涨**
 
 #### 🆚 直觉对比
 
@@ -1536,21 +1540,21 @@ GSPO 有**两个并列的核心贡献**，都很重要：
 
 | | GRPO 的 importance ratio | GRPO 的 reward |
 |---|---|---|
-| 粒度 | **per-token**： $r_t = \dfrac{\pi_\theta(o_{i,t} \mid q, o_{i,\lt t})}{\pi_{\theta_{old}}(o_{i,t} \mid q, o_{i,\lt t})}$ | **per-sequence**： $R(q, o_i)$ 整条响应一个分 |
+| 粒度 | **per-token**： $`r_t = \dfrac{\pi_\theta(o_{i,t} \mid q, o_{i,\lt t})}{\pi_{\theta_{old}}(o_{i,t} \mid q, o_{i,\lt t})}`$ | **per-sequence**： $`R(q, o_i)`$ 整条响应一个分 |
 | 单位 | 每个 token 一个数 | 整条序列一个数 |
 
 **两个问题叠加**：
 
 1. **粒度不对齐**：reward 是"整条回答好不好"，IS 校正却在"每个 token"上做——单位都不一样，**强行把 sequence 级信号塞到 token 级权重上**
-2. **单点采样让 IS 退化**：重要性采样的方差控制依赖**多次采样取期望**，但每个位置 $t$ 上的 $r_t$ 只用了**一个**实际采样到的 token——**根本不是有效的 IS 估计，只是个噪声极大的单点比值**
+2. **单点采样让 IS 退化**：重要性采样的方差控制依赖**多次采样取期望**，但每个位置 $t$ 上的 $`r_t`$ 只用了**一个**实际采样到的 token——**根本不是有效的 IS 估计，只是个噪声极大的单点比值**
 
-> **🎯 一句话**：GRPO 的 $r_t$ 看起来像在做重要性采样校正，**实际上它既不在 reward 的对应粒度上，也不满足 IS 的多采样前提**。这个"假 IS"带来的方差**随响应长度累积**，又被 clip 进一步放大——长 CoT 训练上的不稳定性，根源就在这里。
+> **🎯 一句话**：GRPO 的 $`r_t`$ 看起来像在做重要性采样校正，**实际上它既不在 reward 的对应粒度上，也不满足 IS 的多采样前提**。这个"假 IS"带来的方差**随响应长度累积**，又被 clip 进一步放大——长 CoT 训练上的不稳定性，根源就在这里。
 
 #### 🔥 贡献二：尝试解决 MoE 训练的 token-level ratio 崩溃
 
 粒度不对齐在 Dense 模型上虽然存在，但参数更新对每个 token 概率的扰动是**平滑、连续**的，方差还能扛——所以 GRPO 在 Dense 上勉强能用。**但在 MoE 模型上这个隐藏问题被直接放大到训练崩溃**：
 
-> **实验数据（Qwen3-30B-A3B）**：一次梯度更新后，**约 10% 的 token 激活了和上次完全不同的 expert**。同一个 token 经过不同 expert，输出分布可能**截然不同** → $r_t$ 在这些位置剧烈跳变 → 训练几乎必然 collapse。
+> **实验数据（Qwen3-30B-A3B）**：一次梯度更新后，**约 10% 的 token 激活了和上次完全不同的 expert**。同一个 token 经过不同 expert，输出分布可能**截然不同** → $`r_t`$ 在这些位置剧烈跳变 → 训练几乎必然 collapse。
 
 **Qwen 团队此前的尝试**：用 **Routing Replay**（强制新策略复用旧策略的路由）当补丁——能跑，但代价惨重：
 - 显存翻倍（要缓存所有 token 的 routing mask）
@@ -1567,9 +1571,9 @@ GSPO 有**两个并列的核心贡献**，都很重要：
 s_i(\theta) = \left(\frac{\pi_\theta(y_i \mid x)}{\pi_{\theta_{old}}(y_i \mid x)}\right)^{1/\lvert y_i \rvert} = \exp\!\left(\frac{1}{\lvert y_i \rvert}\sum_{t=1}^{\lvert y_i \rvert} \log\frac{\pi_\theta(y_{i,t} \mid x, y_{i,\lt t})}{\pi_{\theta_{old}}(y_{i,t} \mid x, y_{i,\lt t})}\right)
 ```
 
-> **为什么要做长度归一化（ $1/|y_i|$ 次方）？** 直接用 $\pi_\theta(y_i|x)/\pi_{\theta_{old}}(y_i|x)$ 是几百个 token 概率比的连乘——**长度稍长就指数爆炸 / 趋零**。开 $|y_i|$ 次方（几何平均）后， $s_i$ 的数值范围**和长度脱钩**，clip 阈值才能用统一的 $\epsilon$ 。
+> **为什么要做长度归一化（ $`1/|y_i|`$ 次方）？** 直接用 $`\pi_\theta(y_i|x)/\pi_{\theta_{old}}(y_i|x)`$ 是几百个 token 概率比的连乘——**长度稍长就指数爆炸 / 趋零**。开 $`|y_i|`$ 次方（几何平均）后， $`s_i`$ 的数值范围**和长度脱钩**，clip 阈值才能用统一的 $\epsilon$ 。
 >
-> ⚠️ **注意**：严格来说这是个**有偏但低方差**的近似——标准 IS 理论里序列级比值就应该是 $\pi_\theta(y)/\pi_{old}(y)$ ，开方后已经不是无偏估计，但工程上方差降下来了反而稳。
+> ⚠️ **注意**：严格来说这是个**有偏但低方差**的近似——标准 IS 理论里序列级比值就应该是 $`\pi_\theta(y)/\pi_{old}(y)`$ ，开方后已经不是无偏估计，但工程上方差降下来了反而稳。
 
 Advantage 仍然是 GRPO 的组内归一化（reward 本身就是 sequence 级，自然对齐）：
 
@@ -1600,7 +1604,7 @@ GSPO 中**被 clip 的 token 比例比 GRPO 高两个数量级**，但训练效�
 
 #### ⚖️ 代价：失去 token 级 credit assignment
 
-GSPO 不是没代价——一条序列只有一个 $s_i$ ，意味着**所有 token 共享同一个 IS 权重**，丧失了细粒度信用分配能力。对于"哪个 token 关键、哪个 token 是 filler"这种问题，GSPO 看不到。后续 DHPO 等工作正在尝试 token + sequence 混合。
+GSPO 不是没代价——一条序列只有一个 $`s_i`$ ，意味着**所有 token 共享同一个 IS 权重**，丧失了细粒度信用分配能力。对于"哪个 token 关键、哪个 token 是 filler"这种问题，GSPO 看不到。后续 DHPO 等工作正在尝试 token + sequence 混合。
 
 **结果**：是 **Qwen3-235B-A22B-Instruct-2507** 等系列模型背后的训练算法。
 
@@ -1623,16 +1627,16 @@ RLVR 训出的推理模型为了拿"正确"奖励，会把回答写得越来越�
 把"采 $G$ 条全用"改成"**采更大的 $G$ 、只留 top- $k$**"：
 
 1. 对每个 prompt 采样 $G$ 条响应（ $`G \in \{8, 16, 24\}`$ ，**多于 GRPO**）
-2. 按简洁性指标给每条响应打分： $\text{scores}_i = \text{metric}(o_i)$
+2. 按简洁性指标给每条响应打分： $`\text{scores}_i = \text{metric}(o_i)`$
 3. 排序后**只保留 top- $k$**（ $k \le 8$ ，**和原 GRPO 同等大小**）→ 保留集合 $S$
-4. 构造 0/1 mask： $m_i = \mathbb{I}[i \in S]$
+4. 构造 0/1 mask： $`m_i = \mathbb{I}[i \in S]`$
 5. **在保留子集内重新归一化** advantage（mean/std 都只对 $S$ 内的样本算）：
 
 ```math
 \hat A_{i,t}^{(m)} = \frac{R(q, o_i) - \text{mean}\{R(q, o_{s_1}), \dots, R(q, o_{s_k})\}}{\text{std}\{R(q, o_{s_1}), \dots, R(q, o_{s_k})\}} \cdot m_i
 ```
 
-6. PPO clip loss 照旧，只是被 mask 掉的样本 $m_i = 0$ ，**不贡献梯度**：
+6. PPO clip loss 照旧，只是被 mask 掉的样本 $`m_i = 0`$ ，**不贡献梯度**：
 
 ```math
 L^{\text{GFPO}} = \mathbb{E}\!\left[\min\!\big(r_t \hat A^{(m)}_{i,t},\ \text{clip}(r_t, 1{-}\epsilon, 1{+}\epsilon)\hat A^{(m)}_{i,t}\big)\right]
@@ -1644,8 +1648,8 @@ L^{\text{GFPO}} = \mathbb{E}\!\left[\min\!\big(r_t \hat A^{(m)}_{i,t},\ \text{cl
 
 | 指标 | 评分函数 | 行为 |
 |---|---|---|
-| **Shortest- $k$**（最短优先） | $\text{metric}(o_i) = -\lvert o_i \rvert$ | 简单粗暴选最短的 $k$ 条，最激进的压缩 |
-| **Token Efficiency**（性价比优先） | $\text{metric}(o_i) = R(o_i) / \lvert o_i \rvert$ | "每 token 回报"——长答案只要"配得上"也能进 |
+| **Shortest- $k$**（最短优先） | $`\text{metric}(o_i) = -\lvert o_i \rvert`$ | 简单粗暴选最短的 $k$ 条，最激进的压缩 |
+| **Token Efficiency**（性价比优先） | $`\text{metric}(o_i) = R(o_i) / \lvert o_i \rvert`$ | "每 token 回报"——长答案只要"配得上"也能进 |
 
 > Shortest- $k$ 一刀切；Token Efficiency 更聪明——**简单题强迫短，难题允许长**。论文里 Token Efficiency 在长度压缩上更激进、准确率不掉。
 
@@ -1671,7 +1675,7 @@ L^{\text{GFPO}} = \mathbb{E}\!\left[\min\!\big(r_t \hat A^{(m)}_{i,t},\ \text{cl
 **🎯 一句话**：GFPO 把"想要什么属性"（短而对）从 **reward shaping 移到样本选择**——花训练时的额外采样算力，换永久的 inference 提速。是当前治"长度膨胀"最干净的方案，且天然兼容 DAPO/GRPO 的其它 trick（叠加使用即可）。
 
 > **🆚 和 DAPO Overlong Soft Penalty 的关系**：两者都治长度，但作用机制完全不同。
-> - **DAPO 软长度惩罚**：在 reward 里加 $R_{\text{len}}$ ，仍是 reward shaping，只针对**超过 $L_{\text{cache}}$ 的 outlier**做缓冲——治"答不完被硬截断"的偏置
+> - **DAPO 软长度惩罚**：在 reward 里加 $`R_{\text{len}}`$ ，仍是 reward shaping，只针对**超过 $`L_{\text{cache}}`$ 的 outlier**做缓冲——治"答不完被硬截断"的偏置
 > - **GFPO 拒绝采样**：直接在**样本选择**层面筛简洁性，治的是"平均答案越训越长"的整体膨胀
 >
 > 两者正交，可叠加：GFPO 控总体长度，DAPO 软惩罚处理边界 case。
@@ -1693,7 +1697,7 @@ CISPO（10.5）和 DPPO（10.9）各自从不同角度修补硬 clip 的缺陷�
 
 #### 核心设计 ①：sigmoid 软门函数
 
-把 PPO 的 $r_t \cdot \hat A_t$ surrogate 换成 $f(r_t) \cdot \hat A_t$ ：
+把 PPO 的 $`r_t \cdot \hat A_t`$ surrogate 换成 $`f(r_t) \cdot \hat A_t`$ ：
 
 ```math
 f_{i,t}(r) = \sigma\!\big(\tau_{i,t}(r - 1)\big) \cdot \frac{4}{\tau_{i,t}}, \qquad r_{i,t}(\theta) = \frac{\pi_\theta(y_{i,t} \mid q, y_{i,\lt t})}{\pi_{\theta_{old}}(y_{i,t} \mid q, y_{i,\lt t})}
@@ -1705,13 +1709,13 @@ f_{i,t}(r) = \sigma\!\big(\tau_{i,t}(r - 1)\big) \cdot \frac{4}{\tau_{i,t}}, \qq
 2. **远离 $r=1$ 时梯度平滑衰减**：sigmoid 在 $\pm\infty$ 饱和， $f'(r) \to 0$ —— 自动抑制极端 off-policy 样本，但**永远不归零**
 3. **温度 $\tau$ 控制衰减速度**： $\tau$ 越大 → sigmoid 进入饱和区越快 → 梯度衰减越激进 → 信任区域越窄；反之 $\tau$ 越小信任区域越宽
 
-整体目标函数（注意这里 $f$ 直接吃 $r$ ，**不再走 $\min/\text{clip}$**）：
+整体目标函数（注意这里 $f$ 直接吃 $r$ ，**不再走 $`\min/\text{clip}`$**）：
 
 ```math
 \mathcal{J}_{\text{SAPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^G \frac{1}{|y_i|}\sum_{t=1}^{|y_i|} f_{i,t}\big(r_{i,t}(\theta)\big) \hat A_{i,t}\right]
 ```
 
-其中 $\hat A_{i,t} = \hat A_i = (R_i - \text{mean})/\text{std}$ 仍是 GRPO 组内归一化的 advantage。
+其中 $`\hat A_{i,t} = \hat A_i = (R_i - \text{mean})/\text{std}`$ 仍是 GRPO 组内归一化的 advantage。
 
 > **🎯 直觉**：把 PPO 的硬"门"换成"减速带"。on-policy 附近自由学习（系数=1），距离 1 越远学习强度越弱、**但始终非零**——这同时解决了 PPO clip 的两个毛病：
 > - "case ① 消音"（CISPO 关心的那个）—— SAPO 这里梯度只是变小，没归零
@@ -1723,7 +1727,7 @@ SAPO 进一步发现：**正优势和负优势 token 的稳定性特性截然不
 
 | | 正优势 token（"答对的"）| 负优势 token（"答错的"）|
 |---|---|---|
-| 学习动作 | 抬高 $\pi(y_{i,t})$ | 压低 $\pi(y_{i,t})$ |
+| 学习动作 | 抬高 $`\pi(y_{i,t})`$ | 压低 $`\pi(y_{i,t})`$ |
 | 对其他 token 的副作用 | softmax 归一化下其他 token 概率小幅压低，**局部、可控** | softmax 归一化下**词表上所有其他 token 概率被附带抬升** |
 | 稳定性 | ✅ 稳定 | ❌ 容易把不相关 inappropriate token 拉飞 |
 
@@ -1768,7 +1772,7 @@ SAPO 进一步发现：**正优势和负优势 token 的稳定性特性截然不
 > - 好 token 稀有 → 抬一个好的，副作用是**压一大片坏的**，赚的
 > - 坏 token 多 → 压一个坏的，副作用是**抬一大片别的坏的**，亏的
 >
-> **🎯 所以 SAPO 让 $\tau_{\text{neg}} > \tau_{\text{pos}}$**：
+> **🎯 所以 SAPO 让 $`\tau_{\text{neg}} \gt \tau_{\text{pos}}`$**：
 > - 正优势信号是"净干净的"——副作用大多打在坏 token 上 → 可以放心学（ $\tau$ 小、衰减慢、学得多）
 > - 负优势信号是"带毒的"——副作用大多打在其他坏 token 上 → 要更克制（ $\tau$ 大、衰减快、学得少）
 > - 用更大的 $\tau$ 让负优势 token 更快进入 sigmoid 饱和区 → 梯度系数更早衰减 → 减少"连带抬升坏 token"的副作用
@@ -1776,20 +1780,20 @@ SAPO 进一步发现：**正优势和负优势 token 的稳定性特性截然不
 所以**负优势应该被更激进地抑制**——给它更大的 $\tau$ ：
 
 ```math
-\tau_{i,t} = \begin{cases} \tau_{\text{pos}} & \text{if } \hat A_{i,t} > 0 \\ \tau_{\text{neg}} & \text{otherwise} \end{cases}, \quad \boxed{\tau_{\text{neg}} > \tau_{\text{pos}}}
+\tau_{i,t} = \begin{cases} \tau_{\text{pos}} & \text{if } \hat A_{i,t} \gt 0 \\ \tau_{\text{neg}} & \text{otherwise} \end{cases}, \quad \boxed{\tau_{\text{neg}} \gt \tau_{\text{pos}}}
 ```
 
 **论文实测三组配置**（直接告诉你怎么调）：
 
 | 配置 | 训练稳定性 |
 |---|---|
-| $\tau_{\text{neg}} = 1.05 > \tau_{\text{pos}} = 1.0$ | ✅ **最稳定**（推荐） |
-| $\tau_{\text{neg}} = \tau_{\text{pos}} = 1.0$ | 中等 |
-| $\tau_{\text{neg}} = 0.95 < \tau_{\text{pos}} = 1.0$ | ❌ **最不稳定**（负优势衰减过慢，把其他 token 拉飞了）|
+| $`\tau_{\text{neg}} = 1.05 \gt \tau_{\text{pos}} = 1.0`$ | ✅ **最稳定**（推荐） |
+| $`\tau_{\text{neg}} = \tau_{\text{pos}} = 1.0`$ | 中等 |
+| $`\tau_{\text{neg}} = 0.95 \lt \tau_{\text{pos}} = 1.0`$ | ❌ **最不稳定**（负优势衰减过慢，把其他 token 拉飞了）|
 
 > **🆚 和 DAPO Clip-Higher 的对偶关系**：
-> - **DAPO**： $\epsilon_{\text{high}} > \epsilon_{\text{low}}$ —— **放宽正向探索的上界**
-> - **SAPO**： $\tau_{\text{neg}} > \tau_{\text{pos}}$ —— **收紧负向惩罚的衰减速度**
+> - **DAPO**： $`\epsilon_{\text{high}} \gt \epsilon_{\text{low}}`$ —— **放宽正向探索的上界**
+> - **SAPO**： $`\tau_{\text{neg}} \gt \tau_{\text{pos}}`$ —— **收紧负向惩罚的衰减速度**
 >
 > 两者精神一致——**承认正负梯度的不对称性**——只是 DAPO 在 ε 上做手脚（放正向），SAPO 在温度上做手脚（压负向）。
 
@@ -1803,17 +1807,17 @@ SAPO 进一步发现：**正优势和负优势 token 的稳定性特性截然不
 >
 > 这点很容易被论文的"no need for routing replay"误导。诚实地拆一下：
 >
-> **MoE 训练不稳的根因**：一次梯度更新后 ~10% 的 token 换了 expert → 同一个 token 经过不同 expert，输出分布**截然不同** → $r_t$ 在这些位置剧烈跳变（可能是 0.01 或 100）。
+> **MoE 训练不稳的根因**：一次梯度更新后 ~10% 的 token 换了 expert → 同一个 token 经过不同 expert，输出分布**截然不同** → $`r_t`$ 在这些位置剧烈跳变（可能是 0.01 或 100）。
 >
 > 三种应对策略本质的对比：
 >
 > | 方法 | 怎么处理"routing-flipped"的 token | 性质 |
 > |---|---|---|
-> | **R3（Routing Replay）** | **强制 training router 复用 inference 时的 routing mask** → 同一个 token 永远走同一个 expert → $r_t$ 根本不会因为路由翻转而极端 → **从根上消除问题** | **治本** |
-> | **GSPO** | 把 token-level 极端 $r_t$ 用**几何平均**稀释进整条序列 → 极端值还在，只是被平均化看不见 | 治标（粒度提升 + 平均化） |
-> | **SAPO** | $r_t$ 一旦极端就让 sigmoid 饱和、 $f'(r) \to 0$ → **直接把这些 token 的梯度掐掉** | 治标（软门压制 outlier） |
+> | **R3（Routing Replay）** | **强制 training router 复用 inference 时的 routing mask** → 同一个 token 永远走同一个 expert → $`r_t`$ 根本不会因为路由翻转而极端 → **从根上消除问题** | **治本** |
+> | **GSPO** | 把 token-level 极端 $`r_t`$ 用**几何平均**稀释进整条序列 → 极端值还在，只是被平均化看不见 | 治标（粒度提升 + 平均化） |
+> | **SAPO** | $`r_t`$ 一旦极端就让 sigmoid 饱和、 $f'(r) \to 0$ → **直接把这些 token 的梯度掐掉** | 治标（软门压制 outlier） |
 >
-> **SAPO 实际在做的是**："凡是因为 routing 翻转导致 $r_t$ 不靠谱的 token，我就当你不存在，从梯度里删掉。"——表面上稳了，但**这些 token 携带的真实学习信号也一起被丢了**。R3 不一样：它让这些 token 保留有效的 $r_t$ ，**信号不丢**，只是 router 自身的探索空间被限制。
+> **SAPO 实际在做的是**："凡是因为 routing 翻转导致 $`r_t`$ 不靠谱的 token，我就当你不存在，从梯度里删掉。"——表面上稳了，但**这些 token 携带的真实学习信号也一起被丢了**。R3 不一样：它让这些 token 保留有效的 $`r_t`$ ，**信号不丢**，只是 router 自身的探索空间被限制。
 >
 > **实验佐证：连 GSPO 都不能完全替代 R3**（R3 论文 arXiv:2510.11370）：
 > - GSPO 单用 ✅ 训得完
@@ -1828,7 +1832,7 @@ SAPO 进一步发现：**正优势和负优势 token 的稳定性特性截然不
 
 - **MoE 上是治标**：见上方讨论，软门会把 routing-flipped token 的梯度直接抑制掉，丢失了这些 token 的学习信号——R3 才是真正消除根因的做法
 - **Sigmoid 饱和问题**：极端 ratio 处 $f'(r) \to 0$ ，等效于"软 clip" —— **CISPO 关心的"低概率分叉 token 在多步更新中被消音"在 SAPO 上仍可能发生**。后续 PSPO/GR-PSPO ([arXiv:2509.21282](https://arxiv.org/abs/2509.21282)) 改用线性插值想解决这个问题
-- **多了一个超参**： $(\tau_{\text{pos}}, \tau_{\text{neg}})$ 取代了 $\epsilon$ ，调参负担没本质减小，只是空间变连续了
+- **多了一个超参**： $`(\tau_{\text{pos}}, \tau_{\text{neg}})`$ 取代了 $\epsilon$ ，调参负担没本质减小，只是空间变连续了
 - **每个 token 多一个 sigmoid + exp**：计算开销可忽略
 
 **🎯 一句话**：SAPO 用 **sigmoid 软门 + 非对称温度** 替代 PPO 硬 clip——既保留了"远离 on-policy 时削弱信号"的安全性，又消除了"硬截断→梯度归零"的副作用；负优势用更大 $\tau$ 抑制 softmax 归一化导致的"连带抬升不相关 token"，是 Qwen3-VL 系列的训练算法。
@@ -1858,10 +1862,10 @@ r_{\text{sum}}^{(i,j)} = r_1^{(i,j)} + \cdots + r_n^{(i,j)}, \quad A_{\text{sum}
 
 | (sum_1, sum_2) | mean | std | GRPO advantage |
 |---|---|---|---|
-| (0, 1) | 0.5 | $\sqrt{0.5}$ | (−0.7071, +0.7071) |
-| (0, 2) | 1.0 | $\sqrt{2}$ | (−0.7071, +0.7071) |
-| (1, 2) | 1.5 | $\sqrt{0.5}$ | (−0.7071, +0.7071) |
-| (2, 1) | 1.5 | $\sqrt{0.5}$ | (+0.7071, −0.7071) |
+| (0, 1) | 0.5 | $`\sqrt{0.5}`$ | (−0.7071, +0.7071) |
+| (0, 2) | 1.0 | $`\sqrt{2}`$ | (−0.7071, +0.7071) |
+| (1, 2) | 1.5 | $`\sqrt{0.5}`$ | (−0.7071, +0.7071) |
+| (2, 1) | 1.5 | $`\sqrt{0.5}`$ | (+0.7071, −0.7071) |
 | ... | ... | ... | 9 种组合 → 只剩 2 种符号 |
 
 🚨 **9 种 reward 组合最终只对应 2 种 advantage 模式**（只看相对大小的符号）！
@@ -1892,7 +1896,7 @@ A_k^{(i,j)} = \frac{r_k^{(i,j)} - \text{mean}\{r_k^{(i, 1)}, \dots, r_k^{(i, G)}
 \hat A_{\text{sum}}^{(i,j)} = \frac{\tilde A_{\text{sum}}^{(i,j)} - \text{mean}_{\text{batch}}}{\text{std}_{\text{batch}} + \varepsilon}
 ```
 
-> **为什么 Step 3 这一步必须有？** 加和后的 $\tilde A_{\text{sum}}$ **不再保证落在某个闭区间内**——每多一个 reward 都会让数值范围膨胀（ $n$ 个 reward 各贡献 ±O(1) → 总和最大 ±O($n$)）。如果不做 batch 归一化，调超参时学习率得跟着 reward 数量改。batch 级再归一化让**数值尺度与 reward 数量解耦**，超参更稳。
+> **为什么 Step 3 这一步必须有？** 加和后的 $`\tilde A_{\text{sum}}`$ **不再保证落在某个闭区间内**——每多一个 reward 都会让数值范围膨胀（ $n$ 个 reward 各贡献 ±O(1) → 总和最大 ±O($n$)）。如果不做 batch 归一化，调超参时学习率得跟着 reward 数量改。batch 级再归一化让**数值尺度与 reward 数量解耦**，超参更稳。
 
 #### 📊 回到那个 9 种组合的例子
 
@@ -1934,13 +1938,13 @@ A_k^{(i,j)} = \frac{r_k^{(i,j)} - \text{mean}\{r_k^{(i, 1)}, \dots, r_k^{(i, G)}
 ### 10.10 DPPO（Sea AI Lab, 2026.02）—— 用"散度"替代"比值"做信任域
 
 **痛点**：DPPO 提出了一个对 PPO clip **更根本的批评**——PPO 的"比值 + clip"机制**结构性地不适合 LLM 的大词表场景**：
-- $r_t = \pi_\theta(a)/\pi_{\text{old}}(a)$ 是从**单点采样**估出来的策略散度——**低概率 token 的 $r_t$ 噪声极大,被过度惩罚**(case ① 那种)
+- $`r_t = \pi_\theta(a)/\pi_{\text{old}}(a)`$ 是从**单点采样**估出来的策略散度——**低概率 token 的 $`r_t`$ 噪声极大,被过度惩罚**(case ① 那种)
 - 而**高概率 token 的 ratio 看起来温和,但其分布上的变化可能是灾难性的,反而约束不足**
 
-**核心思路**：抛弃 ratio,直接估计 $\pi_\theta$ 和 $\pi_{\text{old}}$ 之间的**真正散度**(TV 或 KL),用它构造信任域 mask:
+**核心思路**：抛弃 ratio,直接估计 $`\pi_\theta`$ 和 $`\pi_{\text{old}}`$ 之间的**真正散度**(TV 或 KL),用它构造信任域 mask:
 
 ```math
-\text{mask}_t = \mathbb{1}\big[D(\pi_\theta(\cdot|s_t)\ \|\ \pi_{\text{old}}(\cdot|s_t)) < \delta\big]
+\text{mask}_t = \mathbb{1}\big[D(\pi_\theta(\cdot|s_t)\ \|\ \pi_{\text{old}}(\cdot|s_t)) \lt \delta\big]
 ```
 
 但词表上的精确散度算不起,DPPO 用两种**廉价近似**:
@@ -1976,7 +1980,7 @@ LOSS_MODE=dppo_tv  bash examples/dppo_trainer/run_qwen3_30b_a3b_megatron.sh  # T
 **为什么 PPO clip 在 MoE 上特别糟？** 两个原因叠加:
 
 1. **MoE 的输出分布更尖锐**：专家分工导致每个 expert 负责一部分 token 分布,模型整体输出**更多低概率"边缘 token"**(某个 expert 强烈偏好但其他 expert 给低分的 token)
-2. **PPO ratio 在低概率 token 上噪声爆炸**: $r_t$ 是单点蒙特卡洛估计,概率越低方差越大,叠加 PPO clip 的 case ① 不对称惩罚 → **低概率 token 被持续过度惩罚** → 信号失真
+2. **PPO ratio 在低概率 token 上噪声爆炸**: $`r_t`$ 是单点蒙特卡洛估计,概率越低方差越大,叠加 PPO clip 的 case ① 不对称惩罚 → **低概率 token 被持续过度惩罚** → 信号失真
 
 → MoE 双重放大了 PPO clip 的固有缺陷,routing 漂移只是雪上加霜。DPPO 用**分布级散度**(而非单点 ratio)做信任域判定,**直接消除了对单点采样的依赖**,所以在 MoE 上不用 R3 也能稳。
 
@@ -2001,7 +2005,7 @@ LOSS_MODE=dppo_tv  bash examples/dppo_trainer/run_qwen3_30b_a3b_megatron.sh  # T
 
 **GRPO 的 advantage 直接套上来会怎样？**
 
-$\hat A_i = (R_i - \text{mean})/\text{std}$ —— **整条 trajectory 内所有 step 共享同一个 advantage**。这在数学题上没问题（CoT 整体一起对、一起错），但在 agent 上是灾难：
+$`\hat A_i = (R_i - \text{mean})/\text{std}`$ —— **整条 trajectory 内所有 step 共享同一个 advantage**。这在数学题上没问题（CoT 整体一起对、一起错），但在 agent 上是灾难：
 
 > 一条 trajectory 走了 50 步、最后成功 → 这 **50 步全部**被打上 advantage = +1。但其中可能 30 步是无意义乱走、20 步是关键决策——**模型完全无法分辨**，好策略和坏策略一起被强化。
 
@@ -2015,14 +2019,14 @@ GiGPO 的关键 insight 是**把 GRPO 的"组"概念用两次**，一层粗、�
 
 **第一层（macro / episode 级）**：和原 GRPO 完全一样
 - 对每个任务采样 $G$ 条完整 trajectory
-- 用每条 trajectory 的总 return 做组内归一化 → **episode-level advantage** $\hat A_i^{\text{macro}}$
+- 用每条 trajectory 的总 return 做组内归一化 → **episode-level advantage** $`\hat A_i^{\text{macro}}`$
 - 反映"这条 trajectory 整体好不好"
 
 **第二层（micro / step 级）**：⭐ 新机制——**Anchor State Grouping**
 - 扫描所有 $G$ 条 trajectory 的**所有步骤**
 - 找出**在多条 trajectory 中重复出现**的环境状态——叫做 **anchor states**
 - 在每个 anchor state 上，**把不同 trajectory 在这个状态下采取的不同 action 聚成一个 micro 组**
-- 在 micro 组内做归一化 → **step-level advantage** $\hat A_t^{\text{micro}}$
+- 在 micro 组内做归一化 → **step-level advantage** $`\hat A_t^{\text{micro}}`$
 - 反映"**在这个状态下，你选的 action 比其他 trajectory 在同一状态下选的好不好**"
 
 最终每个 step 的 advantage：
@@ -2048,8 +2052,8 @@ T3: [拿苹果] → [放苹果到冰箱] → ❌ 失败 (R=0, 冰箱关着没法
 **纯 GRPO 怎么算？**
 
 三条 trajectory 整体打分：mean = 0.67, std ≈ 0.47
-- $A_{T1} = A_{T2} = +0.71$ （所有 step 共享）
-- $A_{T3} = -1.41$ （所有 step 共享）
+- $`A_{T1} = A_{T2} = +0.71`$ （所有 step 共享）
+- $`A_{T3} = -1.41`$ （所有 step 共享）
 
 但你看 T2 和 T3 里都有 **"拿苹果"** 这一步，而且当时**冰箱都是关着的**——两步**完全一样**！为什么 T2 这一步被强化、T3 这一步被惩罚？**GRPO 无法回答。**
 
@@ -2060,8 +2064,8 @@ T3: [拿苹果] → [放苹果到冰箱] → ❌ 失败 (R=0, 冰箱关着没法
 - T3 在该状态选了 `[放苹果到冰箱]` → 失败
 
 **Step 2**：在这个 anchor state 上算 micro advantage（micro 组只有 T2 和 T3 的这一步）：
-- T2 的 `[开冰箱]`： $A^{\text{micro}} = +0.7$ （这个选择回报更高）
-- T3 的 `[放苹果到冰箱]`： $A^{\text{micro}} = -0.7$
+- T2 的 `[开冰箱]`： $`A^{\text{micro}} = +0.7`$ （这个选择回报更高）
+- T3 的 `[放苹果到冰箱]`： $`A^{\text{micro}} = -0.7`$
 
 **Step 3**：合成最终 advantage：
 
@@ -2191,7 +2195,7 @@ KL：      per-token KL，k3 估计，β ≈ 0.001 ~ 0.01（很小或 0）
 L = -\frac{1}{\sum_i |o_i|} \sum_i \sum_t \min\!\big(r_t^i \hat A_i,\ \text{clip}(r_t^i, 1{-}\epsilon_{\text{low}}, 1{+}\epsilon_{\text{high}}) \hat A_i\big) + \beta \cdot \overline{\text{KL}}_{\text{k3}}
 ```
 
-其中 $\hat A_i = (R_i - \text{mean}(R_{1..G})) / \text{std}(R_{1..G})$ ， $r_t^i = \exp(\log\pi_\theta - \log\pi_{\theta_{\text{old}}})$ 。
+其中 $`\hat A_i = (R_i - \text{mean}(R_{1..G})) / \text{std}(R_{1..G})`$ ， $`r_t^i = \exp(\log\pi_\theta - \log\pi_{\theta_{\text{old}}})`$ 。
 
 > **🤔 关于 advantage 归一化 —— 现在仍是开放问题**
 >
@@ -2205,7 +2209,7 @@ L = -\frac{1}{\sum_i |o_i|} \sum_i \sum_t \min\!\big(r_t^i \hat A_i,\ \text{clip
 > | Dr. GRPO（Sea AI Lab） | ❌ 主张去掉 |
 > | 部分新论文（SimpleRL 等） | ❌ 跟进去掉 |
 >
-> **保守起见**：上面的 Loss 公式按"主流实现"写（保留 std）。**如果你想试 Dr. GRPO 的修正**，把 $\hat A_i$ 换成 $R_i - \text{mean}(R_{1..G})$ 即可——是个一行改动，可以做消融实验对比。
+> **保守起见**：上面的 Loss 公式按"主流实现"写（保留 std）。**如果你想试 Dr. GRPO 的修正**，把 $`\hat A_i`$ 换成 $`R_i - \text{mean}(R_{1..G})`$ 即可——是个一行改动，可以做消融实验对比。
 >
 > 多数论文报告**两种归一化在通用任务上差异有限**，Dr. GRPO 的优势主要体现在**组间难度差异大**的混合数据集上。
 
@@ -2214,14 +2218,14 @@ L = -\frac{1}{\sum_i |o_i|} \sum_i \sum_t \min\!\big(r_t^i \hat A_i,\ \text{clip
 | 超参 | 推荐值 | 说明 |
 |---|---|---|
 | Group size $G$ | 8 ~ 16 | 每个 prompt 采样数 |
-| $\epsilon_{\text{low}}$ | 0.2 | clip 下界，标准 PPO 值 |
-| $\epsilon_{\text{high}}$ | 0.28 | clip 上界（DAPO 推荐 0.28，可调到 0.3）|
+| $`\epsilon_{\text{low}}`$ | 0.2 | clip 下界，标准 PPO 值 |
+| $`\epsilon_{\text{high}}`$ | 0.28 | clip 上界（DAPO 推荐 0.28，可调到 0.3）|
 | $\beta$ (KL) | 0.001 ~ 0.01 | 验证类任务可设 0；通用对话保留 |
 | 学习率 | 1e-6 ~ 1e-5 | 比 SFT 小 10~100 倍 |
 | Rollout per update | 1 | on-policy，rollout 完就 update 一次 |
 | Update epochs / batch | 1 ~ 4 | 太多步会让 clip 频繁触发 |
-| 最大长度 $L_{\max}$ | 8K ~ 32K | 长 CoT 任务 |
-| Length cache $L_{\text{cache}}$ | $L_{\max} - 4K$ | DAPO 软惩罚起点 |
+| 最大长度 $`L_{\max}`$ | 8K ~ 32K | 长 CoT 任务 |
+| Length cache $`L_{\text{cache}}`$ | $`L_{\max} - 4K`$ | DAPO 软惩罚起点 |
 
 **可选叠加**：
 - **小数据集**（< 1k prompts）→ 加入 **REINFORCE++ 全局归一化**（advantage 用 batch 级 mean/std）
@@ -2278,7 +2282,7 @@ s_i = \exp\!\big(\tfrac{1}{|o_i|}\sum_t (\log\pi_\theta - \log\pi_{\text{old}})\
 
 - **效果**：训得稳，是 Qwen3-235B-A22B 的算法
 - **代价**：信号粒度变粗，梯度信用归到 sequence 级
-- **clip 范围**：⚠️ **常见踩坑**：sequence-level ratio 是几何平均，波动范围天然小两个数量级， $\epsilon$ 必须**缩小**——Qwen3 实际用 $\epsilon_{\text{low}}=3\times 10^{-4}, \epsilon_{\text{high}}=4\times 10^{-4}$ ，**不是** 0.2！沿用 token-level 的 0.2 会立即训崩
+- **clip 范围**：⚠️ **常见踩坑**：sequence-level ratio 是几何平均，波动范围天然小两个数量级， $\epsilon$ 必须**缩小**——Qwen3 实际用 $`\epsilon_{\text{low}}=3\times 10^{-4}, \epsilon_{\text{high}}=4\times 10^{-4}`$ ，**不是** 0.2！沿用 token-level 的 0.2 会立即训崩
 
 #### 🤔 R3 vs GSPO：哪个更好？**最新结论是可以叠加**
 
@@ -2350,7 +2354,7 @@ loss：    换成 CISPO 形式（clip 权重 + 显式 logp）
 
 1. **现在没有"一种算法包打天下"**——主流是 **"GRPO base + DAPO 四件套（Clip-Higher、动态采样、token-level loss、软长度惩罚）"** 作为 90% 场景的默认起点
 2. **MoE 模型有多条可行路线**：GRPO + R3（工程最稳，veRL 主流）/ GSPO（Qwen3 路线，sequence-level ratio）/ DPPO（最新，散度 mask）/ 各种组合——**不存在"必须用 GSPO"**，按你的训练框架和稳定性需求选
-3. **advantage 归一化是开放问题**：DeepSeek-R1 / 原版 DAPO / OpenRLHF / TRL / veRL 默认都**保留** $(R-\text{mean})/\text{std}$ ；Dr. GRPO 主张去掉 std，但还没成为事实标准——可以做消融对比
+3. **advantage 归一化是开放问题**：DeepSeek-R1 / 原版 DAPO / OpenRLHF / TRL / veRL 默认都**保留** $`(R-\text{mean})/\text{std}`$ ；Dr. GRPO 主张去掉 std，但还没成为事实标准——可以做消融对比
 4. **KL 系数 β 越来越小**（甚至 0），尤其在**可验证奖励**（数学/代码 RLVR）任务上——这些场景更需要让模型大胆探索
 5. **PPO clip 本身的设计缺陷被广泛认识到**：CISPO（救低概率 token）、DPPO（用散度替代 ratio）都在打这个补丁——选 trick 时要看你的场景是否触发这个缺陷（长 CoT + 多步更新、MoE 输出分布尖锐等）
 6. **不同 trick 几乎都正交**，可以**叠加使用**——这正是"GRPO + 一堆 trick"成为事实标准的根本原因
@@ -2380,15 +2384,15 @@ loss：    换成 CISPO 形式（clip 权重 + 显式 logp）
 
 ### 12.2 从"最大似然"到"对抗博弈"：为什么必须绕道 IRL
 
-policy 是个**带隐变量的模型** $\pi_\theta(a, z \mid q)$ ：给定问题 $q$ ，先生成 reasoning trace $z$ （隐变量），再生成答案 $a$ 。最自然的目标是对专家答案做最大似然：
+policy 是个**带隐变量的模型** $`\pi_\theta(a, z \mid q)`$ ：给定问题 $q$ ，先生成 reasoning trace $z$ （隐变量），再生成答案 $a$ 。最自然的目标是对专家答案做最大似然：
 
 ```math
 \max_\theta \ \mathbb{E}_{(q,a)\sim D}\big[\log \pi_\theta(a\mid q)\big], \qquad \pi_\theta(a\mid q) = \sum_z \pi_\theta(a,z\mid q)
 ```
 
-**但这个边缘化 $\sum_z$ 是 intractable 的**——reasoning trace 的空间组合爆炸，没法枚举。
+**但这个边缘化 $`\sum_z`$ 是 intractable 的**——reasoning trace 的空间组合爆炸，没法枚举。
 
-**IRL 的转身**：不直接学 policy，而是**先学一个奖励函数** $r_\phi(a,q)$ ，让专家答案在它眼里得分高。在 **KL 正则的奖励最大化**下，最优 policy 有闭式解（和 RLHF/DPO 那套"奖励↔策略"对偶完全同源）：
+**IRL 的转身**：不直接学 policy，而是**先学一个奖励函数** $`r_\phi(a,q)`$ ，让专家答案在它眼里得分高。在 **KL 正则的奖励最大化**下，最优 policy 有闭式解（和 RLHF/DPO 那套"奖励↔策略"对偶完全同源）：
 
 ```math
 \pi_{\theta^\star(\phi)}(a\mid q) = \frac{1}{Z(q)}\,\pi_{\text{ref}}(a\mid q)\exp\!\Big\{\tfrac{1}{\beta} r_\phi(a,q)\Big\}
@@ -2404,10 +2408,10 @@ policy 是个**带隐变量的模型** $\pi_\theta(a, z \mid q)$ ：给定问题
 
 ### 12.3 把 reward 函数变成一个"会推理的 critic"
 
-RARO 让奖励函数 $r_\phi$ **本身就是一个 LLM critic** $c_\phi$ ：它读入 $(q, a)$ ，自己**先 reasoning 一段**，再输出一个标签——这个 $(q,a)$ 是**专家**写的还是 **policy** 写的。于是上面那个抽象梯度就退化成**标准 policy gradient + 极简 reward**：
+RARO 让奖励函数 $`r_\phi`$ **本身就是一个 LLM critic** $`c_\phi`$ ：它读入 $(q, a)$ ，自己**先 reasoning 一段**，再输出一个标签——这个 $(q,a)$ 是**专家**写的还是 **policy** 写的。于是上面那个抽象梯度就退化成**标准 policy gradient + 极简 reward**：
 
-- **critic 的 reward**：分类对了就 +1 —— $R_{\text{critic}} = \mathbb{1}[\ell\ \text{正确}]$
-- **policy 的 reward**：骗过 critic（被误判成"专家"）就 +1 —— $R_{\text{policy}} = \mathbb{1}[\ell = \text{expert}]$
+- **critic 的 reward**：分类对了就 +1 —— $`R_{\text{critic}} = \mathbb{1}[\ell\ \text{正确}]`$
+- **policy 的 reward**：骗过 critic（被误判成"专家"）就 +1 —— $`R_{\text{policy}} = \mathbb{1}[\ell = \text{expert}]`$
 
 两边都用 GRPO 优化。这就是完整的对抗博弈：**critic 努力识破，policy 努力伪装**。
 
@@ -2453,7 +2457,7 @@ GAN 类训练出了名地难稳，RARO 识别出四个关键 trick：
 
 ### 12.5 训练算法：一步里发生了什么（逐帧）
 
-共享参数 $\theta$ 同时扮演 $\pi_\theta$（policy）和 $c_\theta$（critic），维护一个 replay buffer $\mathcal{R}$ ：
+共享参数 $\theta$ 同时扮演 $`\pi_\theta`$（policy）和 $`c_\theta`$（critic），维护一个 replay buffer $`\mathcal{R}`$ ：
 
 ```
 ═══════════ RARO 一个训练 step（共享模型 θ）═══════════
@@ -2593,7 +2597,7 @@ GAN 类训练出了名地难稳，RARO 识别出四个关键 trick：
 
 这是**最容易被忽略、但错了就全盘皆输**的一点，而且几乎所有 PG 系 agentic 工作都独立地做了同一件事。
 
-**问题**：一条 trajectory 里，`obs` token（工具返回、检索文档、环境观测）是**环境塞进来的，不是当前策略 $\pi_\theta$ 生成的**。它们相对于 $\pi_\theta$ 是 **off-policy** 的——把它们算进 policy gradient loss，等于让模型去"学习模仿它根本没生成、也控制不了的内容"，梯度方向错误，训练必然不稳。
+**问题**：一条 trajectory 里，`obs` token（工具返回、检索文档、环境观测）是**环境塞进来的，不是当前策略 $`\pi_\theta`$ 生成的**。它们相对于 $`\pi_\theta`$ 是 **off-policy** 的——把它们算进 policy gradient loss，等于让模型去"学习模仿它根本没生成、也控制不了的内容"，梯度方向错误，训练必然不稳。
 
 **解法**：把 `obs` token 从 loss 里 mask 掉。VerlTool（arXiv:2509.01055）【论文实证】把这件事写得最干净——GRPO 的求和**只跑在 action 段的 token 上**：
 
@@ -2636,7 +2640,7 @@ GAN 类训练出了名地难稳，RARO 识别出四个关键 trick：
                └────▶ R₄      同预算下多 ~1.5× 样本
 ```
 
-advantage 分两级相加（都用 GRPO 式组内归一化）：$\hat A_{\text{tree}} = \hat A_{\text{intra-tree}} + \hat A_{\text{inter-tree}}$——**intra-tree**（同一棵树内的兄弟轨迹，共享前缀，分叉点的 reward 差就是 step 级信号）+ **inter-tree**（跨树池化，因为单棵树的 baseline/std 不可靠）。论文还证明：intra-tree 组内优化在二元偏好假设下**梯度等价于 step 级 DPO**（Prop 3.1）。
+advantage 分两级相加（都用 GRPO 式组内归一化）：$`\hat A_{\text{tree}} = \hat A_{\text{intra-tree}} + \hat A_{\text{inter-tree}}`$——**intra-tree**（同一棵树内的兄弟轨迹，共享前缀，分叉点的 reward 差就是 step 级信号）+ **inter-tree**（跨树池化，因为单棵树的 baseline/std 不可靠）。论文还证明：intra-tree 组内优化在二元偏好假设下**梯度等价于 step 级 DPO**（Prop 3.1）。
 
 **结果**：多跳 QA，Qwen2.5-1.5B EM **11.3→19.1（+69%）**；预算研究里最亮眼——每 prompt 只 ~2 条 rollout 时，链式 14.9 → 树 **31.6（+112%）**，"只用四分之一 rollout 预算"就超过链式 GRPO。
 **局限**：强依赖干净的 agent-step 边界；14B 上收益递减；只测了搜索类 QA；串行 $L$ 次迭代拖 wall-clock，默认 $L=1$。
@@ -2650,7 +2654,7 @@ A^{\text{MT-GRPO}}_{i,1} = A^I_i + \alpha A^O_i, \qquad A^{\text{MT-GRPO}}_{i,2}
 ```
 
 **结果**：2-turn 工具使用（TriviaQA）EM **0.5010 vs GRPO 0.3346（+0.166）**；且发现 **outcome-only 的 GRPO 会"逐渐不再调用搜索工具"**（工具奖励衰减到 0）——一个典型的 agentic reward 退化。
-**局限（论文自陈）**：MT-GRPO 需要每个 turn 采 $G$ 条 → $K$ 个 turn 就 $G^{K-1}$ 条轨迹，"长程下计算上不可行"，所以他们转向带 critic 的 MT-PPO；干净公式只推到 $K=2$。
+**局限（论文自陈）**：MT-GRPO 需要每个 turn 采 $G$ 条 → $K$ 个 turn 就 $`G^{K-1}`$ 条轨迹，"长程下计算上不可行"，所以他们转向带 critic 的 MT-PPO；干净公式只推到 $K=2$。
 
 #### 13.3.3 SWEET-RL（arXiv:2503.15478，Meta）——非对称 actor-critic【论文实证】
 
@@ -2711,7 +2715,7 @@ H(\pi_{\theta_{k+1}}) - H(\pi_{\theta_k}) \approx -\eta\,\text{Cov}_{a\sim\pi_{\
         平稳推理    ← 这里熵高，最该分叉探索 →   平稳推理
 ```
 
-**机制——Entropy-based Adaptive Rollout**：监控每次工具调用后的熵变 $\Delta H_t$，分叉概率 $P_t = \alpha + \beta\cdot\Delta H_t$；$P_t$ 超阈值就 fork 出 $Z$ 条分支，**把采样预算花在模型最不确定、最该探索的地方**（而不是均匀撒在整条链上）。共享前缀的 advantage 归因用 GRPO 的 IS ratio 自动对齐。
+**机制——Entropy-based Adaptive Rollout**：监控每次工具调用后的熵变 $`\Delta H_t`$，分叉概率 $`P_t = \alpha + \beta\cdot\Delta H_t`$；$`P_t`$ 超阈值就 fork 出 $Z$ 条分支，**把采样预算花在模型最不确定、最该探索的地方**（而不是均匀撒在整条链上）。共享前缀的 advantage 归因用 GRPO 的 IS ratio 自动对齐。
 **结果**：13 个 benchmark，深搜任务 **比 GRPO 在 GAIA/WebWalkerQA +6%**，且**只用一半工具调用预算**。
 **局限**：分叉阈值靠手调；熵观察在搜索 agent 上测的，其他工具类型的普适性是断言而非充分证明。其后续 **AEPO（arXiv:2510.14545）**【论文实证】指出 ARPO 的真实缺陷——**连续高熵步会过度分叉**（最多连 6 步），反而坍缩 rollout 多样性；AEPO 加了"连续高熵步分叉惩罚"+"高熵裁剪项里插 stop-gradient"，把 GAIA 推到 47.6%、HLE 11.2%（Pass@1）。
 
@@ -2746,7 +2750,7 @@ H(\pi_{\theta_{k+1}}) - H(\pi_{\theta_k}) \approx -\eta\,\text{Cov}_{a\sim\pi_{\
 
 > 💡 **异步的关键权衡：staleness（陈旧度）**。AReaL 用超参 $\eta$ 限制"生成最多领先训练几个策略版本"（代码 $\eta=4$、数学 $\eta=8$，$\eta=0$ 退化为同步）；ROLL Flash 发现 **async-ratio=2 就近乎最大加速**——**不需要很深的陈旧度**。这与直觉相反：你以为放得越开越快，实则放一点点（领先 2 个版本）就能填满长尾空隙，再多只会加剧 off-policy 不稳。
 
-> ⚠️ **算法层面也会因异步而变**（不只是工程）：SORL（arXiv:2511.20718）【论文实证】发现长程多 turn off-policy 下 token 级 IS ratio 会**重尾化**，梯度范数爆到 $10^{12}$–$10^{18}$ 量级导致格式坍缩。它的修法是 **turn 级 IS**（一个 turn 一个长度归一化的几何平均权重，本质是 GSPO 序列级权重的 turn 粒度版）+ **裁剪触发的归一化**。⚠️ 但要注意：SORL 的搜索任务只给了**训练曲线没给 EM 数字**，唯一的数值表是医疗 QA vs Search-R1，**没有 vs GSPO/TIS 的正面数值对比**——引用时别夸大。
+> ⚠️ **算法层面也会因异步而变**（不只是工程）：SORL（arXiv:2511.20718）【论文实证】发现长程多 turn off-policy 下 token 级 IS ratio 会**重尾化**，梯度范数爆到 $`10^{12}`$–$`10^{18}`$ 量级导致格式坍缩。它的修法是 **turn 级 IS**（一个 turn 一个长度归一化的几何平均权重，本质是 GSPO 序列级权重的 turn 粒度版）+ **裁剪触发的归一化**。⚠️ 但要注意：SORL 的搜索任务只给了**训练曲线没给 EM 数字**，唯一的数值表是医疗 QA vs Search-R1，**没有 vs GSPO/TIS 的正面数值对比**——引用时别夸大。
 
 ### 13.6 环节④：agentic 场景的 reward 设计
 
@@ -2853,7 +2857,7 @@ GRPO 的信号链路：
 
 #### 🅰️ 主线 A：让 advantage 信号"算对" —— 归一化纠偏
 
-GRPO 的核心是 $\hat A = (R - \text{mean}) / \text{std}$ ，但这条公式藏着好几个坑：
+GRPO 的核心是 $`\hat A = (R - \text{mean}) / \text{std}`$ ，但这条公式藏着好几个坑：
 
 | 变体 | 攻击点 | 怎么改 |
 |---|---|---|
@@ -2885,8 +2889,8 @@ PPO clip 看似温和，**本质是个二值门控**——某些 token 会直接
 
 | 变体 | 攻击点 | 怎么改 |
 |---|---|---|
-| **CISPO** | clip 让"分叉 token"（Wait/However/Aha）在多步更新里被消音 | clip 从 surrogate 搬到权重， $\log\pi_\theta$ 显式保留 |
-| **SAPO** | 硬 clip 在边界处梯度突变、信任域不连续 | sigmoid 软门 + 非对称温度（ $\tau_{\text{neg}} > \tau_{\text{pos}}$ ）|
+| **CISPO** | clip 让"分叉 token"（Wait/However/Aha）在多步更新里被消音 | clip 从 surrogate 搬到权重， $`\log\pi_\theta`$ 显式保留 |
+| **SAPO** | 硬 clip 在边界处梯度突变、信任域不连续 | sigmoid 软门 + 非对称温度（ $`\tau_{\text{neg}} \gt \tau_{\text{pos}}`$ ）|
 | **DPPO** | 单点 ratio 噪声大、低概率 token 被过惩罚 | 放弃 ratio，用分布散度 mask 做信任域 |
 
 **共同病根**：Schulman 2017 设计 clip 是为了**廉价近似 TRPO 的 trust region**。在 LLM 大词表 + 长 CoT + 多步更新场景下，这个近似的代价被放大了。三个变体从不同维度修复。
