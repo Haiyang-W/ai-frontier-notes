@@ -14,7 +14,7 @@
 - **[写在最前面:工程实战 15 条共识](#写在最前面工程实战-15-条共识)** — 跨 50+ 工作的横向提炼,带具体出处与数字
   - 共识 1 — Tool/observation output token 一律不计 loss、不计 IS 比率
   - 共识 2 — 几乎所有现代 reasoning RL 都移除 KL 项
-  - 共识 3 — Clip-Higher 已成标配($\epsilon_{\text{low}}=0.2, \epsilon_{\text{high}}=0.28$)
+  - 共识 3 — Clip-Higher 已成标配($`\epsilon_{\text{low}}=0.2, \epsilon_{\text{high}}=0.28`$)
   - 共识 4 — Outcome-only reward 是主流且足够强
   - 共识 5 — 长度归一化 / overlong filtering 是反共识陷阱
   - 共识 6 — Dynamic sampling / zero-advantage filtering 是 batch 利用率核心
@@ -150,21 +150,21 @@
 
 ## 共识 1 — Tool/observation output token 一律不计 loss、不计 IS 比率
 
-**机制**:工具输出是 deterministic 环境信号,**不是 $\pi_\theta$ 采样出来的 token**。计入 loss 等于让模型背诵环境字面输出 → 梯度被环境固定 token 稀释、policy 学坏、entropy 漂移;IS 比率分母也无意义($\pi_\theta$ 对环境 token 的"概率"是个 garbage 数)。
+**机制**:工具输出是 deterministic 环境信号,**不是 $`\pi_\theta`$ 采样出来的 token**。计入 loss 等于让模型背诵环境字面输出 → 梯度被环境固定 token 稀释、policy 学坏、entropy 漂移;IS 比率分母也无意义($`\pi_\theta`$ 对环境 token 的"概率"是个 garbage 数)。
 
-**直觉**:把 trajectory 想成一段对话剧本——LLM 是演员,工具/环境是另一个演员。你只能教自家演员"怎么演",不能让他学着背别人的台词。一旦把对方台词也算进 loss,等于强迫演员去预测对手会说什么具体单词;这些 token 数量往往远大于自家台词(一个 search 调用回来几千 token,模型自己只生成几十 token 的 query),**真正想学的那点梯度信号被环境字面输出彻底淹没**。IS 比率同理: $\pi_\theta(\text{环境 token})$ 是个根本没意义的数,放进分母就是噪声放大器。
+**直觉**:把 trajectory 想成一段对话剧本——LLM 是演员,工具/环境是另一个演员。你只能教自家演员"怎么演",不能让他学着背别人的台词。一旦把对方台词也算进 loss,等于强迫演员去预测对手会说什么具体单词;这些 token 数量往往远大于自家台词(一个 search 调用回来几千 token,模型自己只生成几十 token 的 query),**真正想学的那点梯度信号被环境字面输出彻底淹没**。IS 比率同理: $`\pi_\theta(\text{环境 token})`$ 是个根本没意义的数,放进分母就是噪声放大器。
 
 **证据(全员共识)**:
 - **Search-R1** (§11):`<information>...</information>` 间 token 加 indicator mask;Table 4 ablation 显示去 mask 性能掉显著
 - **R1-Searcher** (§12):`<|begin_of_documents|>...<|end_of_documents|>` 标签间 token 不参与 loss 和 IS
 - **ReTool** (§13):`<interpreter>...</interpreter>` sandbox 输出全部从 loss mask
 - **ToRL** (§14):`OBSERVATION` mask;论文明说"防记忆 deterministic 输出"
-- **WebDancer** (§21):RL 阶段 tool response 进 context 参与 $\pi_{\theta_{\text{old}}}$ 计算,但**只对模型生成 token 做优化**
+- **WebDancer** (§21):RL 阶段 tool response 进 context 参与 $`\pi_{\theta_{\text{old}}}`$ 计算,但**只对模型生成 token 做优化**
 - **WebSailor / Nebius** (§22/§29):observation 在 loss 中 mask 是隐含约定
 - **ARTIST** (§16):"gradient 只通过 model-generated token"
 - **Agent Lightning** (§36):用 **transition 抽取**(只存 LLM action)等价实现,工具输出本就不在 output 里,无需 mask
 
-**如何抄**:loss 上挂 $\mathbb{1}[y_t\text{ 来自 LLM 生成}]$;IS 比率同样按这个 indicator 算。
+**如何抄**:loss 上挂 $`\mathbb{1}[y_t\text{ 来自 LLM 生成}]`$;IS 比率同样按这个 indicator 算。
 
 任何接 vLLM/SGLang 的 agent RL 必须做一次 token-id 对齐(见 §36 "No More Retokenization Drift" 踩坑)。
 
@@ -176,12 +176,12 @@
 
 **直觉**:KL 项的历史使命是 RLHF 时代——那时怕 PPO 把语言模型"洗"出非人话(reward hacking 一发不可收),用 ref model 当"安全绳"拉回来。但 reasoning RL 的目标恰恰是**让模型学会 ref model 不会的 long-CoT 推理**,留着这根绳就是自己绊自己。算力账更直接:每 step 多一遍 ref forward = 多 25%+ 的算力,换来的是"训练越久,惩罚越大"——本末倒置。所以**reward 可信(verifier 干净的 math/code)就能去 KL;reward 可疑(open-ended chat)才要 KL 兜底**。
 
-**证据 — 移除 KL($\beta = 0$)**:
-- **DAPO** (§2): $\beta_{\text{KL}} = 0$
+**证据 — 移除 KL($`\beta = 0`$)**:
+- **DAPO** (§2): $`\beta_{\text{KL}} = 0`$
 - **Magistral** (§3):明言"策略本就大幅偏离参考模型,保留 ref 是无意义的计算"
 - **MiMo** (§4):明确删 KL 后训练更稳
 - **Skywork-OR1** (§5):不用 KL loss、不用 advantage mask
-- **ReTool** (§13): $\beta_{\text{KL}} = 0.0$
+- **ReTool** (§13): $`\beta_{\text{KL}} = 0.0`$
 - **ToRL** (§14):"all experiments omit the KL loss"
 - **rStar2** (§17):KL 和 entropy loss 一起去
 - **DeepSWE** (§25):GRPO++ 六件套含 "No KL Loss"
@@ -189,16 +189,16 @@
 **证据 — 保留 KL 的少数派(都是早期 / 多模态稳定优先路线)**:
 - **DeepSeek-R1** (§6): $\beta = 0.001$ (R1-Zero 元祖配置)
 - **Search-R1** (§11):默认 PPO 保留 $\beta = 0.001$
-- **R1-Searcher** (§12):Qwen-2.5 用 0,Llama-3.1-Instruct 用 $1\text{e-}4$ (理由:Llama instruct 早期不稳)
+- **R1-Searcher** (§12):Qwen-2.5 用 0,Llama-3.1-Instruct 用 $`1\text{e-}4`$ (理由:Llama instruct 早期不稳)
 - **Llama 4**:加 KL 罚项(Meta 路线)
 
-**边界**:KL 对"想保留预训练能力 / 防风格漂移 / instruct 模型起步前几百步"有用,代价是 reasoning 提升受限。**经验法则**:reasoning RL 大胆去 KL;agent SFT cold-start 之后前 100 步可保留 $1\text{e-}4$ 兜底,稳了再关。
+**边界**:KL 对"想保留预训练能力 / 防风格漂移 / instruct 模型起步前几百步"有用,代价是 reasoning 提升受限。**经验法则**:reasoning RL 大胆去 KL;agent SFT cold-start 之后前 100 步可保留 $`1\text{e-}4`$ 兜底,稳了再关。
 
 ---
 
 ## 共识 3 — Clip-Higher 已成标配
 
-**机制**:对称 clip 下,低概率 token(探索候选)被 ratio 上调时容易撞 $1+\epsilon$ 被压住(从 $p=0.01$ 到 $p=0.02$ ratio 就 2 了),而高概率 token 微调不触限——**净效果抑制探索、加剧 entropy collapse**。抬高 $\epsilon_{\text{high}}$ 给低概率 token 上行空间。
+**机制**:对称 clip 下,低概率 token(探索候选)被 ratio 上调时容易撞 $1+\epsilon$ 被压住(从 $p=0.01$ 到 $p=0.02$ ratio 就 2 了),而高概率 token 微调不触限——**净效果抑制探索、加剧 entropy collapse**。抬高 $`\epsilon_{\text{high}}`$ 给低概率 token 上行空间。
 
 **直觉**:对称 clip 看起来"公平"——上下都允许 ±20% 浮动——但它是**乘法约束**,作用到概率上完全不公平。算一笔账:
 
@@ -211,15 +211,15 @@
 
 低概率 token 想"翻身"必须经过 ratio > 1.2 这道坎——你越要鼓励的探索行为,clip 卡得越死。**结果就是 policy 只敢微调头部 token,长尾被默默掐死,entropy 一路下行**。Clip-Higher = 给低概率 token 留个"上升通道"。
 
-**为什么只抬上界、下界 $\epsilon_{\text{low}}$ 保持 0.2**:上界 $1+\epsilon_{\text{high}}$ 在 $A>0$ 时生效(管能多快抬概率),下界 $1-\epsilon_{\text{low}}$ 在 $A<0$ 时生效(管能多快压概率)。抬高上界给低概率 token 上升空间、鼓励探索;而**抬高下界只会让负 advantage 的低概率 token 被压得更狠更快,直奔 0 再不回头**——同样加剧 entropy collapse。所以上界放松给"活路"、下界留紧当"刹车",两边都为保住探索,故不对称。
+**为什么只抬上界、下界 $`\epsilon_{\text{low}}`$ 保持 0.2**:上界 $`1+\epsilon_{\text{high}}`$ 在 $`A\gt 0`$ 时生效(管能多快抬概率),下界 $`1-\epsilon_{\text{low}}`$ 在 $`A\lt 0`$ 时生效(管能多快压概率)。抬高上界给低概率 token 上升空间、鼓励探索;而**抬高下界只会让负 advantage 的低概率 token 被压得更狠更快,直奔 0 再不回头**——同样加剧 entropy collapse。所以上界放松给"活路"、下界留紧当"刹车",两边都为保住探索,故不对称。
 
-**证据 — 经典数值就是 $\epsilon_{\text{low}}=0.2$, $\epsilon_{\text{high}}=0.28$**:
+**证据 — 经典数值就是 $`\epsilon_{\text{low}}=0.2`$, $`\epsilon_{\text{high}}=0.28`$**:
 - **DAPO** (§2):0.2 / 0.28(首倡)
 - **rStar2** (§17):0.2 / 0.28
 - **Nebius** (§29):Stage 1 [0.2, 0.3],Stage 2 [0.2, 0.26](随 context 增加收紧上界)
-- **Magistral** (§3): $\epsilon_{\text{high}} \in [0.26, 0.28]$ **动态调整以维持 group entropy 稳定**——更精细的做法
+- **Magistral** (§3): $`\epsilon_{\text{high}} \in [0.26, 0.28]`$ **动态调整以维持 group entropy 稳定**——更精细的做法
 - **MiniRL** (§1):0.2 / 0.27
-- **MiMo** (§4):抬高 $\epsilon_{\text{high}}$ (具体值未披露)
+- **MiMo** (§4):抬高 $`\epsilon_{\text{high}}`$ (具体值未披露)
 - **Skywork-OR1** (§5):用 clip-higher 控熵
 
 **反例**:
@@ -247,10 +247,10 @@
 - **Tongyi DeepResearch** (§24):binary correctness reward
 
 **例外 — 谨慎用 shaping 的**:
-- **Tool-Star** (§15): $r_M = 0.1$ 显式 multi-tool 协作 bonus(强制 search+python 同时出现);**前提是单工具 outcome 学不出协作**
+- **Tool-Star** (§15): $`r_M = 0.1`$ 显式 multi-tool 协作 bonus(强制 search+python 同时出现);**前提是单工具 outcome 学不出协作**
 - **Magistral** (§3):四维 reward(format/correctness/length/language consistency)——但 correctness 仍是主体,其他三个是辅助约束
 - **R1-Searcher** (§12):两阶段 reward,stage 1 教调用(retrieval bonus 0.5)、stage 2 切到纯 F1
-- **Kimi-Researcher 的 γ-decay**: $r_{\text{step}} = \gamma^{s-1} R$ 隐式 length penalty,鼓励短轨
+- **Kimi-Researcher 的 γ-decay**: $`r_{\text{step}} = \gamma^{s-1} R`$ 隐式 length penalty,鼓励短轨
 
 **经典坑**:Search-R1 实证 "F1 reward 会出现 **answer avoidance**"——模型学会不答以避免错答,需加 action-level penalty。
 
@@ -262,26 +262,26 @@
 
 > **别当绝对律——先分清两层:**
 > - **reward(信号层)**:想控长度,就在这里加——软惩罚 / 超 100k 扣分 / 上限。
-> - **loss 归一(聚合层)**:要不要除以 $|o_i|$。答案几乎总是**别除**,用 token-level(每 token 等权);除以长度只会稀释长样本梯度、引入偏置。
+> - **loss 归一(聚合层)**:要不要除以 $`|o_i|`$。答案几乎总是**别除**,用 token-level(每 token 等权);除以长度只会稀释长样本梯度、引入偏置。
 >
-> 所以"reward 里已经罚了长度,还要不要 length-norm?"——**不要**。reward 已经把"太长"扣进 advantage 了,再除 $|o_i|$ 会把这份惩罚**稀释掉**,自己抵消自己。**长度控制永远放 reward,不靠 loss 归一。**
+> 所以"reward 里已经罚了长度,还要不要 length-norm?"——**不要**。reward 已经把"太长"扣进 advantage 了,再除 $`|o_i|`$ 会把这份惩罚**稀释掉**,自己抵消自己。**长度控制永远放 reward,不靠 loss 归一。**
 >
-> **底层道理**:LLM 本质是 **per-token 学习**的——自回归模型每个 token 都是一次条件在上文的独立决策,RL 的梯度也天然落在每个 token 上,token-level(每 token 等权)正顺着这个粒度。而 len norm 给每个 token 的信号除以"它碰巧所在轨迹的长度",**把一个 token 的学习强度绑死在一个与它自身对错无关的序列级量($|o_i|$)上**——等于打破了 per-token 学习的本意,偏置正源于此。
+> **底层道理**:LLM 本质是 **per-token 学习**的——自回归模型每个 token 都是一次条件在上文的独立决策,RL 的梯度也天然落在每个 token 上,token-level(每 token 等权)正顺着这个粒度。而 len norm 给每个 token 的信号除以"它碰巧所在轨迹的长度",**把一个 token 的学习强度绑死在一个与它自身对错无关的序列级量($`|o_i|`$)上**——等于打破了 per-token 学习的本意,偏置正源于此。
 >
 > **两个边界**:① overlong filtering 只在被扔轨迹**没有可信 reward**时该 mask(DeepSWE 外生截断、结果未定);能判负就保留负 reward。② DPO 是特例——它要 normalize 的是**随长度涨的 reward 本身**(SimPO),不是这里的 loss 归一。
 
 **机制 1(length norm 破一阶近似)**:MiniRL §1.2 推导。一句话——**序列目标的梯度天然是"各 token 梯度求和",除以长度把它变成"求平均",就把长样本压下去了**。
 
-- 序列的对数概率 $\log\pi_\theta(y)=\sum_t\log\pi_\theta(y_t)$,所以梯度是把每个 token 的梯度**加起来**。长序列 token 多、本就该贡献更多梯度——每个 token 都在出力,这是对的。
+- 序列的对数概率 $`\log\pi_\theta(y)=\sum_t\log\pi_\theta(y_t)`$,所以梯度是把每个 token 的梯度**加起来**。长序列 token 多、本就该贡献更多梯度——每个 token 都在出力,这是对的。
 - 除以 $|y|$ 后变成**平均**:不管 100 token 还是 4000 token,整条序列贡献都被压成 O(1)。长序列每个 token 的信号被 $1/|y|$ 稀释,**长样本被系统性低估** → bias。
-- "破一阶近似"是同一件事的形式化说法:PPO 的序列 ratio 是连乘 $\prod_t r_t$,token-level 用 $\sum_t(r_t-1)$ 做它的一阶近似($\prod_t r_t\approx 1+\sum_t(r_t-1)$);除以长度后求和变平均,近似的就不再是序列 ratio。
+- "破一阶近似"是同一件事的形式化说法:PPO 的序列 ratio 是连乘 $`\prod_t r_t`$,token-level 用 $`\sum_t(r_t-1)`$ 做它的一阶近似($`\prod_t r_t\approx 1+\sum_t(r_t-1)`$);除以长度后求和变平均,近似的就不再是序列 ratio。
 
 **机制 2(overlong filtering 反向)**:扔掉超长 trajectory 等于撤销负反馈 → 模型继续生成 overlong pattern 无人纠正 → overlong 比例**反而上升**。
 
 **直觉**:这两条都是"看起来善意,实则反向"的经典陷阱。
 
 - **length norm(为什么"除以长度"是错的)**:除以 $|y|$ 看上去"公平"——长短样本权重相等——但有两条独立理由说明它是 bias 而非 unbias:
-  - **理论侧(MiniRL §1.2)**:token-level loss $\sum_t \log\pi_\theta(y_t)\cdot A$ 是 sequence-level 真目标 $\log\pi_\theta(y)\cdot A$ 的**一阶近似**——前提是不除 $|y|$ 。一除,梯度方向不再对齐真序列目标,数学上就 biased 了。
+  - **理论侧(MiniRL §1.2)**:token-level loss $`\sum_t \log\pi_\theta(y_t)\cdot A`$ 是 sequence-level 真目标 $`\log\pi_\theta(y)\cdot A`$ 的**一阶近似**——前提是不除 $|y|$ 。一除,梯度方向不再对齐真序列目标,数学上就 biased 了。
   - **实证侧(DAPO)**:同样是低质量 trajectory,**长劣样本被欠惩罚**——一条 4000 token 的胡言乱语 trajectory,sample-level 归一化下 4000 个 bad token 平摊一份负梯度,每个 token 几乎不痛;一条 100 token 的劣质短样本,每个 bad token 承担 40× 惩罚。结果是**短劣 pattern 被快速纠正,长劣 pattern 学不掉**,语料里长劣 pattern 比例越训越高,行为上就表现为"模型越训越啰嗦"。
   - 注意:这里关键是**惩罚被稀释**,不是"奖励被偷拿"——长样本若 reward 正,每 token 奖励信号同样被稀释,只是这种正向稀释通常没坏处。
 - **overlong filtering**:模型写了 32K 还没答完(显然有问题),你把它扔了不算 loss——等于告诉模型"写超长没有惩罚"。下一轮模型继续 32K,你继续扔——**负反馈通道彻底断了**。正确做法是给它**软惩罚**(超 4K 开始线性扣分),或者**保留 truncated 的负 reward**(rStar2 实测)。
@@ -296,15 +296,15 @@
 **易混点 — 为什么这和 DPO"加长度正则"不矛盾**:DPO 文献明明 claim 要 length-normalize 防啰嗦(SimPO / R-DPO),这里却说别 normalize,看似打架,其实是同一原则在两种结构下的相反表现。关键在**长度从哪里进入目标函数**:
 
 - **常见误解**:"不 norm → 长序列梯度 mass 大 → 模型偏向长输出"。漏了 **advantage 符号**:梯度 mass 大,但方向跟着 $A$ 走——长的好序列被更强**强化**、长的坏序列被更狠**惩罚**,不是一律偏长。
-- **RL 里 verbosity 的真凶恰恰是 len norm 本身**(Dr. GRPO 实证:sample-level norm 会让**错误回答越训越长**)。机制:per-token advantage = $\hat A/|o_i|$,除以长度对**正负 advantage 作用相反**,四象限全被扭曲——
+- **RL 里 verbosity 的真凶恰恰是 len norm 本身**(Dr. GRPO 实证:sample-level norm 会让**错误回答越训越长**)。机制:per-token advantage = $`\hat A/|o_i|`$,除以长度对**正负 advantage 作用相反**,四象限全被扭曲——
 
   | | 简洁(短) | 啰嗦(长) | 净推力 |
   |---|---|---|---|
-  | **对** ($\hat A>0$) | 每 token 奖励大 | 每 token 奖励小 | 对答被压**短**(砍掉有用推理) |
-  | **错** ($\hat A<0$) | 每 token 惩罚大 | 每 token 惩罚小 | 错答被拉**长**(藏进低惩罚区) |
+  | **对** ($`\hat A\gt 0`$) | 每 token 奖励大 | 每 token 奖励小 | 对答被压**短**(砍掉有用推理) |
+  | **错** ($`\hat A\lt 0`$) | 每 token 惩罚大 | 每 token 惩罚小 | 错答被拉**长**(藏进低惩罚区) |
 
   即 len norm **同时**"该长的压短、该短的拉长"。文献 spotlight"错答变长",是因为它病态可见、且训练期错答样本多主导整体趋势;但"对答被压短"同样是 bias。去掉 norm(token-level 每 token 等权)两头都修。
-- **DPO 相反,因为长度成了 reward 里未被约束的自由变量**:DPO 的 implicit reward $r(y)=\beta\sum_t\log\frac{\pi(y_t)}{\pi_{\text{ref}}(y_t)}$ 是**未归一化的 token 求和**——注意它本身**不**机械随长度涨(每项 log-ratio 可正可负,初始 $\pi=\pi_{\text{ref}}$ 时为 0),但它**不惩罚长度**。叠加偏好数据"chosen 普遍比 rejected 长"的标注偏置,模型就把"写更长"当成拉大 margin 的廉价杠杆(同样风格下 token 越多、正 log-ratio 项越多、总和越大),越训越啰嗦。**SimPO 除以 $|y|$、R-DPO 加 $-\alpha|y|$ 罚项**,都是把长度从 reward 里 disentangle。
+- **DPO 相反,因为长度成了 reward 里未被约束的自由变量**:DPO 的 implicit reward $`r(y)=\beta\sum_t\log\frac{\pi(y_t)}{\pi_{\text{ref}}(y_t)}`$ 是**未归一化的 token 求和**——注意它本身**不**机械随长度涨(每项 log-ratio 可正可负,初始 $`\pi=\pi_{\text{ref}}`$ 时为 0),但它**不惩罚长度**。叠加偏好数据"chosen 普遍比 rejected 长"的标注偏置,模型就把"写更长"当成拉大 margin 的廉价杠杆(同样风格下 token 越多、正 log-ratio 项越多、总和越大),越训越啰嗦。**SimPO 除以 $|y|$、R-DPO 加 $-\alpha|y|$ 罚项**,都是把长度从 reward 里 disentangle。
 - **GRPO 里长度不在 reward 里**:advantage 来自外部 reward(对错 0/1、F1 等),**与长度无关**。再除 $|y|$ 不是"消掉长度项",而是**凭空引入** $1/|y|$ 稀释长坏样本的惩罚。
 
 | | 长度进入的位置 | 正确操作 |
@@ -316,16 +316,16 @@
 
 **证据 — 反 length norm**:
 - **MiniRL** (§1.7):"不要 length-normalize:它破坏一阶近似,看起来无害但实际有 bias"
-- **DAPO** (§2):用 token-level $1/\sum_i|o_i|$ 而非 sample-level $(1/G)(1/|o_i|)$,正是为了让长序列得到应得权重
-  - sample-level:先在每条样本内除以自身长度 $1/|o_i|$(组内拉平),再除以样本数 $1/G$——结果是**每条样本权重相等**,长短不论,正是机制 1 说的"求平均"。
-  - token-level:所有样本的 token 汇到一起,统一除以**总 token 数** $\sum_i|o_i|$——结果是**每个 token 权重相等**,长样本因 token 多自然占更大权重,梯度回到"求和"语义。
+- **DAPO** (§2):用 token-level $`1/\sum_i|o_i|`$ 而非 sample-level $`(1/G)(1/|o_i|)`$,正是为了让长序列得到应得权重
+  - sample-level:先在每条样本内除以自身长度 $`1/|o_i|`$(组内拉平),再除以样本数 $1/G$——结果是**每条样本权重相等**,长短不论,正是机制 1 说的"求平均"。
+  - token-level:所有样本的 token 汇到一起,统一除以**总 token 数** $`\sum_i|o_i|`$——结果是**每个 token 权重相等**,长样本因 token 多自然占更大权重,梯度回到"求和"语义。
 - **Skywork-OR1** (§5):token-level loss **without length normalization**
 - **Magistral** (§3):用"group 内总长度"归一化(折中——既不破一阶近似,又防组内长度偏差)
 
 **证据 — 反 overlong filtering**:
 - **rStar2** (§17 失败案例 1):"扔掉超长 trajectory 反让 overlong 比例上升——无负反馈 → 重复 pattern 不纠正;**保留 truncated trajectory 的负 reward 更有效**"
 - **DAPO**:提供 overlong filtering 变体,但主路用 **Overlong Reward Shaping**(4k cache 线性软惩罚 + 16k 上限)
-- **Nebius** (§29):**明确反对** DeepSWE 的 Compact Filtering,改用 **soft length penalty**(超 $L_{\text{thr}}$ 线性惩罚到 $T_{\max}$)
+- **Nebius** (§29):**明确反对** DeepSWE 的 Compact Filtering,改用 **soft length penalty**(超 $`L_{\text{thr}}`$ 线性惩罚到 $`T_{\max}`$)
 
 **反例(DeepSWE)**:
 - **DeepSWE** (§25):Compact Filtering 对 max-context/20min-timeout/max-steps trajectory mask loss——但配套是 64k context + 100 turns,**只对真正打不完的样本 mask**,不是普遍超长
@@ -338,7 +338,7 @@
 
 ## 共识 6 — Dynamic sampling / zero-advantage filtering 是 batch 利用率核心
 
-**机制**:GRPO group 内全对/全错时 $\hat A_i = 0 \forall i$,该 group 不产生任何梯度。训练后期"easy + impossible"占比走高,batch 有效样本急剧衰减,卡步数不卡 GPU。过滤 + 重采等于免费算力放大。
+**机制**:GRPO group 内全对/全错时 $`\hat A_i = 0 \forall i`$,该 group 不产生任何梯度。训练后期"easy + impossible"占比走高,batch 有效样本急剧衰减,卡步数不卡 GPU。过滤 + 重采等于免费算力放大。
 
 **直觉**:把 GRPO 当成"组内排名考试"——同一题让模型答 16 次,排名靠前的相对靠后的就是 advantage。如果 16 个 rollout 全对(题太简单)或全错(题太难),所有人**并列**,advantage 全部为 0,这一组不产生任何学习信号。
 
@@ -363,7 +363,7 @@ Dynamic sampling 两种思路:
 - **Skywork-OR1** (§5):每阶段切换时丢弃上阶段 acc=1 prompt
 - **rStar2 Stage 3** (§17):用上阶段策略筛去 8/8 全对的题,只留 hard subset
 
-**如何抄**:over-sample $1.5\text{–}2\times$ 然后过滤到目标 batch(DAPO 标配);rollout 极贵时用 DUPO 复制路线。
+**如何抄**:over-sample $`1.5\text{–}2\times`$ 然后过滤到目标 batch(DAPO 标配);rollout 极贵时用 DUPO 复制路线。
 
 > **🧠 思考点(作者本人,待验证)——训推异步 + 流式 variance 筛选**:把动态采样推到极致——**rollout 端作为常驻生产者源源不断产轨迹进 buffer,训练端只挑"非全对/非全错"(有 variance)的组消费**。这把 DAPO 那种**同步 over-sample 再丢弃**的阻塞代价,换成**非阻塞的流式筛选**:生产者一直满产、训练端永远有有效梯度,长尾长轨迹也不再卡 batch。代表系统:**AReaL**(全异步、生成/训练解耦 + staleness 控制)、Magistral 的 online 异步生成。
 >
@@ -373,7 +373,7 @@ Dynamic sampling 两种思路:
 
 ---
 
-## 共识 7 — Actor lr 极保守 $\approx 1\text{e-}6$;SFT lr $\approx 5\text{e-}6\text{–}7\text{e-}6$
+## 共识 7 — Actor lr 极保守 $`\approx 1\text{e-}6`$;SFT lr $`\approx 5\text{e-}6\text{–}7\text{e-}6`$
 
 **机制**:RL 不是从 0 优化,而是对已经 well-trained 的策略做小步修正。lr 大容易把好行为洗掉,也会放大 train-infer ratio 漂移(让 clip 频繁触发)。SFT 是分布回拉,可以 5–10× lr。
 
@@ -382,7 +382,7 @@ Dynamic sampling 两种思路:
 - **SFT** = 把模型分布**拉向**一个已知好分布(数据集),目标明确、监督密集(每个 token 都有 ground truth),允许大刀阔斧。**毛坯房装修**。
 - **RL** = 在已经 well-trained 的策略上**做小幅度微调**,目标是探索 + 强化好的行为,监督稀疏(整条 trajectory 一个 reward),lr 大一点就把已有的好行为洗掉。**精装房调家具**。
 
-第二个隐藏理由更工程化:**lr 越大,policy 一步走得越远, $\pi_\theta$ 和 rollout 时的 $\mu_{\theta_{\text{old}}}$ 差异越大** → IS ratio 偏离 1 越远 → clip 频繁触发 → 大部分梯度被丢弃。所以即使你"勇敢地"把 lr 调到 3e-6,实际更新量未必比 1e-6 大,反而稳定性差很多。这是为什么 1e-6 几乎是 dense 模型 RL 的"宇宙常数"。
+第二个隐藏理由更工程化:**lr 越大,policy 一步走得越远, $`\pi_\theta`$ 和 rollout 时的 $`\mu_{\theta_{\text{old}}}`$ 差异越大** → IS ratio 偏离 1 越远 → clip 频繁触发 → 大部分梯度被丢弃。所以即使你"勇敢地"把 lr 调到 3e-6,实际更新量未必比 1e-6 大,反而稳定性差很多。这是为什么 1e-6 几乎是 dense 模型 RL 的"宇宙常数"。
 
 **证据 — Actor lr = 1e-6 派(主流)**:
 - DAPO (§2)、ReTool (§13)、Search-R1 (§11)、rStar2 (§17)、Nebius (§29)、MiMo (§4) 全部 **1e-6**
@@ -556,14 +556,14 @@ Dynamic sampling 两种思路:
 
 **机制(回顾)**:train-infer 数值差 + 没 IS correction + clip 不对称 → 分布只缩不扩(详见 §1.1 三股力分析)。一旦熵接近 0,policy 只输出一两种 pattern,reward 卡死。
 
-**直觉**:把 policy 分布想成"探索气球"——训练开始气球饱满(高熵,啥都可能输出),正常优化应该让气球**缓慢收缩到一个稳定的中等体积**(focus on 高 reward pattern,但保留探索)。**collapse 就是气球突然漏气**,从中等体积瞬间瘪成一个点——policy 只剩一两种输出模式,reward 卡死,再训也涨不上去,而且**几乎救不回来**(rStar2 失败案例 4:温度、ctx、 $\epsilon_{\text{high}}$ 、optimizer reset 全试了都救不回)。
+**直觉**:把 policy 分布想成"探索气球"——训练开始气球饱满(高熵,啥都可能输出),正常优化应该让气球**缓慢收缩到一个稳定的中等体积**(focus on 高 reward pattern,但保留探索)。**collapse 就是气球突然漏气**,从中等体积瞬间瘪成一个点——policy 只剩一两种输出模式,reward 卡死,再训也涨不上去,而且**几乎救不回来**(rStar2 失败案例 4:温度、ctx、 $`\epsilon_{\text{high}}`$ 、optimizer reset 全试了都救不回)。
 
 为什么这么难救?因为分布一旦塌掉,**长尾 token 的概率被推到接近 0**(比如 1e-8),Adam 优化器再想把它拉回 0.01,需要的梯度方向已经被低概率自身严重稀释——**数值上等于不存在**了。所以 entropy collapse 是**单向门**,只能预防,不能事后补救。
 
 **三件套告警必须实时盯**(任何一个先动都是预警,三个同步爆基本确诊):
 1. **entropy** 50–200 步断崖下跌
 2. **clip ratio** 飙到 20%+(说明 policy 步子太大,系统在硬性约束)
-3. **$D_{\text{KL}}[\mu_{\text{old}} \| \pi_{\text{old}}]$** 同步爆涨(说明 train-infer 数值漂移正在放大)
+3. **$`D_{\text{KL}}[\mu_{\text{old}} \| \pi_{\text{old}}]`$** 同步爆涨(说明 train-infer 数值漂移正在放大)
 
 反直觉的两个点必须记牢:
 - **温度 τ=0.6 比 τ=1.0 更容易 collapse**(Skywork 实证):低温 rollout 多样性低 → 探索少 → 熵更快塌。温度调的是"喂给 RL 的数据有多 diverse",不是"策略有多确定",别被"低温=更稳"骗了。
@@ -572,14 +572,14 @@ Dynamic sampling 两种思路:
 **监控信号(三件套同时出现 = 基本确诊)**:
 1. **entropy** 50–200 步内断崖式下跌
 2. **clip ratio** 飙到 20%+
-3. **$D_{\text{KL}}[\mu_{\text{old}} \| \pi_{\text{old}}]$** 同步爆涨
+3. **$`D_{\text{KL}}[\mu_{\text{old}} \| \pi_{\text{old}}]`$** 同步爆涨
 
 **治法谱(激进 → 保守)**:
 
 | 治法 | 代表 | 说明 |
 |---|---|---|
 | **Clip-Higher** | DAPO/Magistral/rStar2 | 已是标配(共识 3),给低概率 token 上行空间 |
-| **Adaptive entropy schedule** | **Skywork-OR1 MAGIC** (§5) | 目标熵 **tgt_ent = 0.2**,按当前与目标差动态调 $\alpha_k$ |
+| **Adaptive entropy schedule** | **Skywork-OR1 MAGIC** (§5) | 目标熵 **tgt_ent = 0.2**,按当前与目标差动态调 $`\alpha_k`$ |
 | **去掉 entropy loss** | **DeepSWE** (§25) | "entropy loss 反而会让 entropy 指数级爆炸";前提是 base 的 token-entropy ∈ [0.3, 1] |
 | **同时去 KL + entropy loss** | **rStar2** (§17) | 配合 Clip-Higher + GRPO-RoC,Stage 1 clip ratio >10% 也不管 |
 | **选择性丢负样本** | **Kimi-Researcher** (§18) | "负样本拉低 token 概率会引发 collapse,主动 discard 部分 negative samples" |
@@ -589,13 +589,13 @@ Dynamic sampling 两种思路:
 **反直觉证据**:
 - **Skywork-OR1** (§5):**温度 $\tau = 0.6$ 反而让 entropy 提前 collapse, $\tau = 1.0$ 稳**——降温降熵是错的直觉
 - **rStar2** (§17 Stage 1):故意让 clip ratio >10% 也不放,强迫学短 reasoning——**clip rate 高不必然坏**,要看在训啥
-- **rStar2** (§17 失败案例 4):"step 510 之后继续训会 collapse;温度提到 1.2 / 加长 max len / 提 $\epsilon_{\text{high}}$ / T=20 / reset optimizer **都救不回来**"——**RL 上限 ≈ base model 上限**,关键是用最少 compute 触达上限,不要追求"再涨一点"
+- **rStar2** (§17 失败案例 4):"step 510 之后继续训会 collapse;温度提到 1.2 / 加长 max len / 提 $`\epsilon_{\text{high}}`$ / T=20 / reset optimizer **都救不回来**"——**RL 上限 ≈ base model 上限**,关键是用最少 compute 触达上限,不要追求"再涨一点"
 
 **【深化】熵动力学的三个硬结论(2025–2026,详见 §10L)**:
 
-1. **熵-性能定律**(Cui et al. [2505.22617](https://arxiv.org/abs/2505.22617)):验证性能与策略熵满足 $R=-a\cdot e^{H}+b$,熵耗尽($H{\to}0$)时性能天花板 $=-a+b$。意味着 **熵一旦塌,reward 上限就被锁死**。更狠的数字:**前 200 步就消耗了 73% 的熵、拿走 76% 的性能增益**——绝大部分训练步只在做边际优化。这给共识 12 的"用最少 compute 触达上限"提供了定量背书。
+1. **熵-性能定律**(Cui et al. [2505.22617](https://arxiv.org/abs/2505.22617)):验证性能与策略熵满足 $`R=-a\cdot e^{H}+b`$,熵耗尽($`H{\to}0`$)时性能天花板 $=-a+b$。意味着 **熵一旦塌,reward 上限就被锁死**。更狠的数字:**前 200 步就消耗了 73% 的熵、拿走 76% 的性能增益**——绝大部分训练步只在做边际优化。这给共识 12 的"用最少 compute 触达上限"提供了定量背书。
 
-2. **崩溃由极少数 token 驱动**:熵下降 $\propto \mathrm{Cov}(\log\pi, \text{advantage})$ 且该协方差全程为正 → 熵单调降。但驱动它的是**极端离群 token**:top-0.02% token 的平均协方差 = 5.654,全体均值仅 0.003。所以治法是**只掐这一小撮**:**Clip-Cov / KL-Cov**(对高协方差 token 裁剪或加 KL 罚),32B 上比 GRPO **+6.4%**,且熵能维持 "10× higher"。
+2. **崩溃由极少数 token 驱动**:熵下降 $`\propto \mathrm{Cov}(\log\pi, \text{advantage})`$ 且该协方差全程为正 → 熵单调降。但驱动它的是**极端离群 token**:top-0.02% token 的平均协方差 = 5.654,全体均值仅 0.003。所以治法是**只掐这一小撮**:**Clip-Cov / KL-Cov**(对高协方差 token 裁剪或加 KL 罚),32B 上比 GRPO **+6.4%**,且熵能维持 "10× higher"。
 
 3. **张力:压制高协方差 token vs 保留高熵 forking token**(Beyond 80/20, [2506.01939](https://arxiv.org/abs/2506.01939)):另一面是 **只有 ~20% 高熵 "forking token" 在驱动 RL 学习**,只对这 20% 做梯度更新能**匹配甚至超过**全量(Qwen3-32B AIME +11)。**两条看似矛盾**:一个说"掐掉极端高协方差 token 防崩",一个说"聚焦高熵 token 促学"。其实不矛盾——前者是 top-0.02% 的**病态离群点**(协方差异常,该抑制),后者是 top-20% 的**正常分叉点**(熵高但协方差正常,该保留)。记住:**梯度应聚焦少数关键 token,但要分清"病态离群"和"健康分叉"。**
 
@@ -634,9 +634,9 @@ Dynamic sampling 两种思路:
 
 ## 共识 14 — IS 粒度之争:token 级(+TIS) / 序列级(GSPO) / 裁权重不丢 token(CISPO)【2025H2 新浪潮】
 
-**机制**:GRPO 的 importance ratio 是 **per-token** 的 $r_{i,t}=\pi_\theta(y_{i,t})/\mu_{\theta_{\text{old}}}(y_{i,t})$。但 reward 是**整条序列**给的(outcome 0/1)。GSPO 一句话点破:**"优化目标的单位应当与 reward 的单位匹配"** —— reward 是序列级,off-policy 校正也该是序列级。token 级比率的病在于:每个 next-token 分布**只有一个样本**,IS 在 $N{=}1$ 上根本起不到分布校正作用,只是**注入高方差噪声**,噪声沿长序列累积、再被 clip 放大,最终崩溃"往往不可逆"。
+**机制**:GRPO 的 importance ratio 是 **per-token** 的 $`r_{i,t}=\pi_\theta(y_{i,t})/\mu_{\theta_{\text{old}}}(y_{i,t})`$。但 reward 是**整条序列**给的(outcome 0/1)。GSPO 一句话点破:**"优化目标的单位应当与 reward 的单位匹配"** —— reward 是序列级,off-policy 校正也该是序列级。token 级比率的病在于:每个 next-token 分布**只有一个样本**,IS 在 $`N{=}1`$ 上根本起不到分布校正作用,只是**注入高方差噪声**,噪声沿长序列累积、再被 clip 放大,最终崩溃"往往不可逆"。
 
-**直觉**:把一条 16k token 的 rollout 想成 16k 次"掷骰子"。GRPO 给每次掷骰单独算一个修正系数 $r_{i,t}$ —— 但你只掷了一次,这个"系数"纯属噪声。16k 个噪声系数连乘/累加,方差爆炸。三条新路线是三种"降噪"哲学:
+**直觉**:把一条 16k token 的 rollout 想成 16k 次"掷骰子"。GRPO 给每次掷骰单独算一个修正系数 $`r_{i,t}`$ —— 但你只掷了一次,这个"系数"纯属噪声。16k 个噪声系数连乘/累加,方差爆炸。三条新路线是三种"降噪"哲学:
 
 | 路线 | 代表 | 做法 | 一句话 |
 |---|---|---|---|
@@ -644,10 +644,10 @@ Dynamic sampling 两种思路:
 | **序列级** | **GSPO** | ratio 改成整条序列似然比的**几何平均**(长度归一),clip 也在序列级 | "换掉单位,从根上降方差" |
 | **裁权重不丢 token** | **CISPO** | 裁的是 IS **权重**而非 token,**所有 token 都保留梯度** | "别把探索 token 删了" |
 
-**为什么这是 2025 下半年的大事**:它和[共识 3](#共识-3--clip-higher-已成标配)(clip-higher)、[共识 12](#共识-12--entropy-collapse-是头号杀手治法多样)(entropy)、[§44](#§44-训推一致性隐形杀手)(train-infer)全是同一个根问题的不同切面——**怎么处理 $\pi_\theta$ 与 rollout 分布 $\mu_{\theta_{\text{old}}}$ 的偏离**。GRPO 时代靠 clip 硬截;新浪潮直接动 IS 比率的定义。
+**为什么这是 2025 下半年的大事**:它和[共识 3](#共识-3--clip-higher-已成标配)(clip-higher)、[共识 12](#共识-12--entropy-collapse-是头号杀手治法多样)(entropy)、[§44](#§44-训推一致性隐形杀手)(train-infer)全是同一个根问题的不同切面——**怎么处理 $`\pi_\theta`$ 与 rollout 分布 $`\mu_{\theta_{\text{old}}}`$ 的偏离**。GRPO 时代靠 clip 硬截;新浪潮直接动 IS 比率的定义。
 
 **证据 — 序列级 GSPO**(§10A):
-- **GSPO**(Qwen, [2507.18071](https://arxiv.org/abs/2507.18071)):序列比率 $s_i=(\pi_\theta(y_i)/\mu(y_i))^{1/|y_i|}$;**用于 Qwen3**。最关键的工程红利:**MoE RL 不再需要 Routing Replay**(对照 MiniRL R3 §1.3)——序列似然对"单个 token 路由漂移"不敏感,而 GRPO 在 Qwen3-30B-A3B 上每步更新后约 **10% expert 路由会变**,逼得必须 replay。GSPO 直接绕过。
+- **GSPO**(Qwen, [2507.18071](https://arxiv.org/abs/2507.18071)):序列比率 $`s_i=(\pi_\theta(y_i)/\mu(y_i))^{1/|y_i|}`$;**用于 Qwen3**。最关键的工程红利:**MoE RL 不再需要 Routing Replay**(对照 MiniRL R3 §1.3)——序列似然对"单个 token 路由漂移"不敏感,而 GRPO 在 Qwen3-30B-A3B 上每步更新后约 **10% expert 路由会变**,逼得必须 replay。GSPO 直接绕过。
 - **反直觉**:GSPO 被 clip 掉的 token 比例比 GRPO **高两个数量级**,用更少 token 估梯度反而更稳——作者据此断言 GRPO 的 token 级估计"本身就是噪声大且低效的"。
 
 **证据 — 裁权重 CISPO**(§10B):
@@ -655,11 +655,11 @@ Dynamic sampling 两种思路:
 - **ScaleRL**(Meta, [2510.13786](https://arxiv.org/abs/2510.13786))在其 scaling-law 实验里把 **CISPO 选作 loss(优于 GSPO 和 DAPO)**,并指出 loss 类型会**改变性能渐近线(天花板)**而非只改算力效率。
 
 **证据 — 几何平均 GMPO**(§10C):
-- **GMPO**([2507.20673](https://arxiv.org/abs/2507.20673)):token reward 的**几何平均**(对离群 ratio 鲁棒,AM-GM 不等式保证目标方差更小);token 级 clip 但范围放宽到 $(e^{-0.4},e^{0.4})$;R1-Distill-7B 上比 GRPO **平均 +4.1%**。
+- **GMPO**([2507.20673](https://arxiv.org/abs/2507.20673)):token reward 的**几何平均**(对离群 ratio 鲁棒,AM-GM 不等式保证目标方差更小);token 级 clip 但范围放宽到 $`(e^{-0.4},e^{0.4})`$;R1-Distill-7B 上比 GRPO **平均 +4.1%**。
 
 **反例 / 边界(必读,别把新算法当银弹)**:
-- **Lite-PPO**(§10E, [2508.08221](https://arxiv.org/abs/2508.08221)):**clip-higher 的收益依赖模型类型与规模** —— base 模型 clip 率本就 ~0.003,抬上界几乎无效甚至有害;只有 aligned 模型 + 合适规模才显著。4B 模型上 $\epsilon_{\text{high}}{=}0.32$ 最优,8B 上 0.28 最优,**scaling 关系小模型成立、大模型不成立**。结论:**极简两件套(group 均值 + batch 标准差归一 + token-level loss)就能反超组件繁多的 DAPO**。
-- **GSPO 在高 staleness 下会崩**:INTELLECT-3(§41E)用 **async-8** 做压测,**GSPO 下 reward 直接崩溃**——序列级 IS 在极端 off-policy 时反而不如双侧裁剪(INTELLECT-2 的 $\epsilon{=}0.2,\delta{=}4$)。
+- **Lite-PPO**(§10E, [2508.08221](https://arxiv.org/abs/2508.08221)):**clip-higher 的收益依赖模型类型与规模** —— base 模型 clip 率本就 ~0.003,抬上界几乎无效甚至有害;只有 aligned 模型 + 合适规模才显著。4B 模型上 $`\epsilon_{\text{high}}{=}0.32`$ 最优,8B 上 0.28 最优,**scaling 关系小模型成立、大模型不成立**。结论:**极简两件套(group 均值 + batch 标准差归一 + token-level loss)就能反超组件繁多的 DAPO**。
+- **GSPO 在高 staleness 下会崩**:INTELLECT-3(§41E)用 **async-8** 做压测,**GSPO 下 reward 直接崩溃**——序列级 IS 在极端 off-policy 时反而不如双侧裁剪(INTELLECT-2 的 $`\epsilon{=}0.2,\delta{=}4`$)。
 - **GSPO 机制归因有争议**:follow-up [2509.24203](https://arxiv.org/abs/2509.24203) 认为真正起作用的是"序列级 clip 当正则",而非序列级 IS 本身——标"有争议"而非定论。
 - **TIS 本身也有争议**:见[共识 12](#共识-12--entropy-collapse-是头号杀手治法多样)与 §44——slime 在 Search-R1 3B 上开 TIS 反而早期 collapse,改用 MIS 才稳。
 
@@ -667,7 +667,7 @@ Dynamic sampling 两种思路:
 - **dense + 中小规模 + 近 on-policy**:token 级 GRPO/DAPO + TIS 兜底就够,别急着上序列级。
 - **MoE**:优先 **GSPO**(免 Routing Replay),或 MiniRL R3 二选一。
 - **大量 off-policy 复用样本(每 batch 多轮更新)**:**CISPO**(别 clip 掉 fork token)。
-- **高 staleness / 异步**:**双侧 clip**($\epsilon{=}0.2,\delta{=}4$,共识见 §41E),不要纯 GSPO。
+- **高 staleness / 异步**:**双侧 clip**($`\epsilon{=}0.2,\delta{=}4`$,共识见 §41E),不要纯 GSPO。
 - 完整谱系与决策树见 **§49**。
 
 ---
@@ -731,10 +731,10 @@ Dynamic sampling 两种思路:
 
 | 指标 | 计算 | 健康范围 | 异常含义 |
 |---|---|---|---|
-| **Token-level entropy** $H[\pi_\theta(\cdot \mid x, y_{\lt t})]$ | 每个 generation step 的 softmax 熵,batch 平均 | base 模型通常 0.3–1.0;训练中平稳或缓降 | **断崖下跌(50–200 步内掉到 < 0.1)= entropy collapse 确诊**(共识 12) |
+| **Token-level entropy** $`H[\pi_\theta(\cdot \mid x, y_{\lt t})]`$ | 每个 generation step 的 softmax 熵,batch 平均 | base 模型通常 0.3–1.0;训练中平稳或缓降 | **断崖下跌(50–200 步内掉到 < 0.1)= entropy collapse 确诊**(共识 12) |
 | **Per-position entropy curve** | 按 token position 分桶画熵 | reasoning 段 > tool-arg 段(structured token 本就低熵) | 所有 position 同步 collapse = 系统性 bug;尾部 position 先 collapse = trajectory 过长积累 |
 | **Generation diversity** | 同 prompt 16 rollouts 间 BLEU / distinct-n / pass@k 分散度 | 同 prompt 内 pass 数差异 ≥ 30% | 所有 rollouts 完全一样 = 已经 mode collapse(group advantage 全 0) |
-| **Token-entropy 阈值告警** | $H < 0.1$ 持续 20 步 | — | DeepSWE (§25) 经验:base token-entropy ∈ [0.3, 1] 时**不需要 entropy loss**;脱出此区间立刻 entropy schedule 介入 |
+| **Token-entropy 阈值告警** | $`H \lt  0.1`$ 持续 20 步 | — | DeepSWE (§25) 经验:base token-entropy ∈ [0.3, 1] 时**不需要 entropy loss**;脱出此区间立刻 entropy schedule 介入 |
 
 **明确监控的工作**:MiniRL (§1.5)、Skywork-OR1 (§5,**目标熵 tgt_ent=0.2** 动态控)、Magistral (§3,clip ε 动态调以维持 group entropy)、rStar2 (§17,Stage 划分按 clip ratio 稳定时机)。
 
@@ -748,10 +748,10 @@ Dynamic sampling 两种思路:
 
 | 指标 | 计算 | 健康范围 | 异常含义 |
 |---|---|---|---|
-| **IS ratio 分布** $r_t = \pi_\theta(y_t) / \mu_{\theta_{\text{old}}}(y_t)$ | 整 batch token 的 ratio 直方图;mean / std / p99 | mean ≈ 1.0,分布**集中在 [0.8, 1.27]**(§44 实战 checklist) | mean 系统性 > 1 = train-infer 数值差(FP8 vs BF16) 或 retokenization drift;p99 > 5 = 必上 TIS 截断(MiniRL §1.4,阈值=5) |
-| **Clip ratio (high / low 分开)** | $\Pr[r_t > 1+\epsilon_{\text{high}}]$ 和 $\Pr[r_t < 1-\epsilon_{\text{low}}]$ 分别统计 | < 5%(reasoning) / < 10%(agentic) | **> 15% 红线**(§44 checklist 第 3 条);单侧 > 20% 必查 logprob mismatch |
-| **$D_{\text{KL}}[\mu_{\theta_{\text{old}}} \,\Vert\, \pi_{\theta_{\text{old}}}]$** | 同 prompt 同权重,推理 logprob vs 训练 logprob 的 KL | 趋稳或缓变 | **同步爆涨 = 训推数值漂移**(§1.1 "三股力"中的 train-infer discrepancy 物理来源) |
-| **$D_{\text{KL}}[\pi_\theta \,\Vert\, \pi_{\theta_{\text{old}}}]$** | 同权重新旧策略 KL | 平稳 | 爆涨 = policy staleness 过大(mini-batch 拆太多步);收紧 ε 或减 mini-batch 数 |
+| **IS ratio 分布** $`r_t = \pi_\theta(y_t) / \mu_{\theta_{\text{old}}}(y_t)`$ | 整 batch token 的 ratio 直方图;mean / std / p99 | mean ≈ 1.0,分布**集中在 [0.8, 1.27]**(§44 实战 checklist) | mean 系统性 > 1 = train-infer 数值差(FP8 vs BF16) 或 retokenization drift;p99 > 5 = 必上 TIS 截断(MiniRL §1.4,阈值=5) |
+| **Clip ratio (high / low 分开)** | $`\Pr[r_t \gt  1+\epsilon_{\text{high}}]`$ 和 $`\Pr[r_t \lt  1-\epsilon_{\text{low}}]`$ 分别统计 | < 5%(reasoning) / < 10%(agentic) | **> 15% 红线**(§44 checklist 第 3 条);单侧 > 20% 必查 logprob mismatch |
+| **$`D_{\text{KL}}[\mu_{\theta_{\text{old}}} \,\Vert\, \pi_{\theta_{\text{old}}}]`$** | 同 prompt 同权重,推理 logprob vs 训练 logprob 的 KL | 趋稳或缓变 | **同步爆涨 = 训推数值漂移**(§1.1 "三股力"中的 train-infer discrepancy 物理来源) |
+| **$`D_{\text{KL}}[\pi_\theta \,\Vert\, \pi_{\theta_{\text{old}}}]`$** | 同权重新旧策略 KL | 平稳 | 爆涨 = policy staleness 过大(mini-batch 拆太多步);收紧 ε 或减 mini-batch 数 |
 | **MoE expert routing diff** | 训推同 token 的 top-K expert 重合率 | > 95% | < 80% = 必上 R3 (Rollout Routing Replay,见 MiniRL §1.3) |
 
 **经典告警组合(§44 实战 checklist 总结的"三件套同时报警 = 训推不一致确诊")**:
@@ -768,7 +768,7 @@ Dynamic sampling 两种思路:
 | 指标 | 算什么 | 看什么 |
 |---|---|---|
 | **Training reward (mean / std / median)** | batch 内 reward 统计 | mean 应缓涨;std 突降到 0 = batch 已全对/全错,**dynamic sampling 必须开**(共识 6) |
-| **Zero-advantage 比例** | $\Pr[\text{group } \hat A_i \equiv 0]$ | > 30% = batch 利用率塌方,触发 DAPO / DUPO 重采(共识 6) |
+| **Zero-advantage 比例** | $`\Pr[\text{group } \hat A_i \equiv 0]`$ | > 30% = batch 利用率塌方,触发 DAPO / DUPO 重采(共识 6) |
 | **Group advantage 方差** | 每 group 内 advantage 的 std | 单调降至 0 = 即将无梯度(GRPO 致命) |
 | **Reward 各分量分别画线**(混合 reward 必须做) | format / correctness / shaping / length 分量分别记 | **某辅助分量异常上涨 + correctness 不动 = reward hacking 信号**;典型案例: Cursor "学会主动询问澄清以避免被罚"(§32 涌现/坑) |
 | **Pass-rate 课程位置** | 当前 batch 题目的 pass-rate 直方图 | 应中间峰(0.3–0.7 占主体);全跑到 1.0 = 课程升级时机(MiMo §4 / Skywork §5) |
@@ -785,7 +785,7 @@ Dynamic sampling 两种思路:
 | 指标 | 算法 | 阈值 / 出处 |
 |---|---|---|
 | **Response length 分布** | mean / p50 / p95 / max | mean 持续 ↑ + correctness 不动 = 啰嗦化 hacking;追 Kimi-Researcher (§18) γ-decay 风格抑制 |
-| **Overlong / truncation rate** | $\Pr[\text{len} \geq L_{\max}]$ | DAPO 软惩罚窗 $L_{\text{cache}}=4096$ 起触发(§2);**rStar2 (§17 失败案例 1) 警告:overlong 比例上升后,过滤反而加剧** |
+| **Overlong / truncation rate** | $`\Pr[\text{len} \geq L_{\max}]`$ | DAPO 软惩罚窗 $`L_{\text{cache}}=4096`$ 起触发(§2);**rStar2 (§17 失败案例 1) 警告:overlong 比例上升后,过滤反而加剧** |
 | **N-gram 重复率** | k-gram (k=10) 出现次数 | WebDancer (§21) **10-gram 阈值 = 4**;超阈值直接判 invalid。**rStar2 (§17 失败案例 2)**:N-gram 检测会误杀合法 verify pattern("换个输入验证"),需白名单 |
 | **Compact filtering trigger 比例** | max_context / 20min timeout / max_steps 三类 | DeepSWE (§25):三类触发率超过 ~5% 启动 mask;Nebius (§29) **反对** 此做法,改用 soft length penalty |
 
@@ -801,9 +801,9 @@ Dynamic sampling 两种思路:
 |---|---|---|
 | **Turn count 分布** | trajectory 平均 / max turns | rStar2 (§17):Stage 1/2 max=10、Stage 3=15;Kimi-Researcher 平均 23 步、可达 70+;ASearcher 7B/14B=32、QwQ-32B=128 |
 | **Invalid trajectory rate** | format 不合规 / 调用不存在 tool / JSON 解析失败 比例 | WebDancer (§21) 失败案例:**long-CoT → instruction model 迁移 invalid rate 13.6–21.4%**;> 10% 必须改 SFT 或加 format reward |
-| **Tool call 成功率** | $\frac{\text{成功 tool call}}{\text{总 tool call}}$ | GLM-4.6 (§8) 关键迭代目标;**拒识未知工具、最小化臆造参数** 是显式监控目标 |
-| **Tool call 类型分布** | search / python / browse 各占比 | Tool-Star (§15):若 multi-tool bonus $r_M$ 加了,但分布仍单工具 = 协作没学起来 |
-| **Tool error 类型直方图** | timeout / syntax / API failure / 语义错误 | rStar2 (§17) GRPO-RoC 按 $p_{\text{err}} = \text{错}/\text{总}$ 反比例采正样本,前提是这个分布算得出 |
+| **Tool call 成功率** | $`\frac{\text{成功 tool call}}{\text{总 tool call}}`$ | GLM-4.6 (§8) 关键迭代目标;**拒识未知工具、最小化臆造参数** 是显式监控目标 |
+| **Tool call 类型分布** | search / python / browse 各占比 | Tool-Star (§15):若 multi-tool bonus $`r_M`$ 加了,但分布仍单工具 = 协作没学起来 |
+| **Tool error 类型直方图** | timeout / syntax / API failure / 语义错误 | rStar2 (§17) GRPO-RoC 按 $`p_{\text{err}} = \text{错}/\text{总}`$ 反比例采正样本,前提是这个分布算得出 |
 | **"Over-action"率** | 答案确认后继续行动 比例 | WebDancer (§21) 失败案例明确点名;**长 trajectory RL 经典 reward hacking** |
 | **Context utilization** | 实际用到的 history token / context window | Kimi-Researcher (§18) "naive 约 10 iter 就 OOM";开 context-management 后单条 rollout > 50 iter;DeepSeek-V3.2 128K 下 ~20% agent 任务超限,Discard-all 管理把 BrowseComp 51.4→67.6(§33D) |
 | **Self-summarization 频率** | Cursor-style 主动总结调用次数 / trajectory | Cursor Composer 2.5 (§32):**hard task 上主动多次 summarize 是健康信号** |
@@ -818,7 +818,7 @@ Dynamic sampling 两种思路:
 | 指标 | 健康范围 | 异常含义 |
 |---|---|---|
 | **Gradient norm** | 平稳;clip 阈值通常 1.0(Nebius §29);**INTELLECT-2 激进到 0.1**(§41E) | 持续 hit clip = lr 过大或 reward scale 失控;趋 0 = entropy 已死;**多轮任务突然尖刺 = void turn 致 IS 爆炸(SimpleTIR §17A),尖刺即不可逆崩溃临界点** |
-| **Policy update magnitude** $\lVert \theta_{t+1} - \theta_t \rVert$ | 与 grad norm × lr 一致 | 与 grad norm 不一致 = optimizer state 异常(rStar2 (§17) Stage 3 显式 reset optimizer) |
+| **Policy update magnitude** $`\lVert \theta_{t+1} - \theta_t \rVert`$ | 与 grad norm × lr 一致 | 与 grad norm 不一致 = optimizer state 异常(rStar2 (§17) Stage 3 显式 reset optimizer) |
 | **Actor loss / value loss / entropy loss 分别记** | actor 缓降;value(PPO)与 actor 同量级 | entropy loss 系数 × entropy 绝对值若过大 = 反向推熵爆炸(DeepSWE 删 entropy loss 的理由 §25) |
 | **AdamW 配置(易漏)** | 默认 β=(0.9,0.999), eps=1e-8 | RL 梯度幅度可低至 1e-18,**MiniMax-M1 实测默认 eps 不收敛**,改 β2=0.95 / eps=1e-15(§10B);ORZ/INTELLECT 用 β2=0.95(§10H/§41E) |
 | **跨输入互信息 MI(X;Z)**(多轮/推理多样性) | 与性能正相关 | **熵高但 MI→0 = template collapse**(RAGEN-2 §17C);MI 预测性能比熵可靠 2×,熵方向甚至是反的 |
@@ -887,7 +887,7 @@ Dynamic sampling 两种思路:
 > **本部分要回答**:reasoning RL(单轮 math/code)训练稳定性的核心问题是什么,业界用什么算法把它压住。
 >
 > **核心观点**:
-> - **理论锚点(§1 MiniRL)**:token-level surrogate 只在 $\pi_\theta \approx \mu_{\theta_{\text{old}}}$ 时是 sequence-level 真目标的一阶近似;任何破坏这点的 trick(length norm、重 clip)都引入 bias
+> - **理论锚点(§1 MiniRL)**:token-level surrogate 只在 $`\pi_\theta \approx \mu_{\theta_{\text{old}}}`$ 时是 sequence-level 真目标的一阶近似;任何破坏这点的 trick(length norm、重 clip)都引入 bias
 > - **最完整公开 recipe(§2 DAPO)**:Clip-Higher + Dynamic Sampling + Token-Level Loss + Overlong Reward Shaping 四件套,后续 reasoning RL 几乎都在它基础上改
 > - **不同路线(§3–§8)**:Magistral 动态 ε / MiMo 数据 re-sampling / Skywork adaptive entropy / DeepSeek-R1 ε=10 + 保留 KL — 都在解同一个 entropy collapse 问题,但取舍不同
 > - **agentic RL 必先掌握 Part I**:所有 Part II–V 的工作都建立在这些算法基础上;先理解 reasoning RL 再做 agentic
@@ -903,7 +903,9 @@ Dynamic sampling 两种思路:
 
 LLM RL 中的真目标本是 sequence-level reward 的期望：
 
-$$J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot|x)}[R(x,y)]$$
+```math
+J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot|x)}[R(x,y)]
+```
 
 但由于：
 1. **推理引擎 ≠ 训练引擎**：rollout 用 inference engine（vLLM/SGLang，FP8 等），训练用 BF16 等不同 kernel；
@@ -917,7 +919,7 @@ $$J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot|x)}[R(x,y)]$$
    > (c) **batch-invariance 缺失**：vLLM continuous batching 下同一 token 在不同 batch 位置可能得到不同 logits（非确定性 reduction）；
    > (d) **MoE expert 路由**：见第 3 点。
    >
-   > 所以即使 $\pi_{\theta_{\text{old}}} = \mu_{\theta_{\text{old}}}$ （权重相同），实际 logprob 比率 $\pi_{\theta_{\text{old}}}(y_t)/\mu_{\theta_{\text{old}}}(y_t) \neq 1$ ，会有 0.9–1.1 甚至更大的系统性漂移。PPO 假设比率在 1 附近的 trust region 被破坏，长期累积成 bias，最终 entropy 崩塌、训练发散。这就是 Eq.5 里"训练-推理 discrepancy"那一项的物理来源。
+   > 所以即使 $`\pi_{\theta_{\text{old}}} = \mu_{\theta_{\text{old}}}`$ （权重相同），实际 logprob 比率 $`\pi_{\theta_{\text{old}}}(y_t)/\mu_{\theta_{\text{old}}}(y_t) \neq 1`$ ，会有 0.9–1.1 甚至更大的系统性漂移。PPO 假设比率在 1 附近的 trust region 被破坏，长期累积成 bias，最终 entropy 崩塌、训练发散。这就是 Eq.5 里"训练-推理 discrepancy"那一项的物理来源。
    >
    > **为什么必然是 entropy 崩塌**（而不是别的失败形式）？
    >
@@ -927,8 +929,8 @@ $$J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot|x)}[R(x,y)]$$
    >
    > 拆开看三股力，全都朝"更尖"一个方向走：
    > - **采样有偏**：推理引擎（FP8/PagedAttention 非确定性 reduction）把高概率舍入得更高、低概率压成 0，μ_θ_old 实际是从一个比 π_θ_old 更窄的分布采的。
-   > - **梯度盲推**：没有 IS 修正，policy gradient 把 reward 直接乘到 $\nabla \log \pi_\theta(y_t)$ ，而被采到的 $y_t$ 大概率本来就高 → 梯度再推一把更高；那些被 μ 舍入到 0 的 token 根本进不了 batch，永远拿不到正向梯度——**词表在 RL 视角下被悄悄裁剪了**。
-   > - **Clip 不对称**：ratio 系统性 > 1 时，正 advantage 撞 $1+\epsilon_{\text{high}}$ 被压住（想涨的涨不动），负 advantage 照跌（想跌的继续跌）。**净效果"只缩不扩"**。
+   > - **梯度盲推**：没有 IS 修正，policy gradient 把 reward 直接乘到 $`\nabla \log \pi_\theta(y_t)`$ ，而被采到的 $`y_t`$ 大概率本来就高 → 梯度再推一把更高；那些被 μ 舍入到 0 的 token 根本进不了 batch，永远拿不到正向梯度——**词表在 RL 视角下被悄悄裁剪了**。
+   > - **Clip 不对称**：ratio 系统性 > 1 时，正 advantage 撞 $`1+\epsilon_{\text{high}}`$ 被压住（想涨的涨不动），负 advantage 照跌（想跌的继续跌）。**净效果"只缩不扩"**。
    >
    > 三股一旦启动就互相喂养：分布变尖 → 下一轮 rollout 更窄 → batch 内 token 多样性更低 → group advantage 方差变 0（GRPO 直接没梯度）→ 残留梯度仍指向"再尖一点" → entropy 几步内崩到接近 0，模型只输出一两种 pattern，reward 卡住。监控上的典型特征：**entropy 在 50–200 步内断崖式下跌，clip ratio 飙到 20%+，KL(μ_old ‖ π_old) 同步爆涨**——三个信号同时出现基本就是 train-infer 不一致没修。
    >
@@ -942,21 +944,29 @@ $$J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot|x)}[R(x,y)]$$
 
 #### Sequence-level 经过 IS 后的形式
 
-$$J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \mu_{\theta_{\text{old}}}}\left[\frac{\pi_\theta(y|x)}{\mu_{\theta_{\text{old}}}(y|x)} R(x,y)\right]$$
+```math
+J^{\text{seq}}(\theta) = \mathbb{E}_{y \sim \mu_{\theta_{\text{old}}}}\left[\frac{\pi_\theta(y|x)}{\mu_{\theta_{\text{old}}}(y|x)} R(x,y)\right]
+```
 
 #### Token-level surrogate（带 stop-gradient）
 
-$$J^{\text{token}}(\theta) = \mathbb{E}\left[\sum_t \text{sg}\!\left[\frac{\pi_\theta(y_t \mid x,y_{\lt t})}{\mu_{\theta_{\text{old}}}(y_t \mid x,y_{\lt t})}\right] \cdot R(x,y) \cdot \log \pi_\theta(y_t \mid x,y_{\lt t})\right]$$
+```math
+J^{\text{token}}(\theta) = \mathbb{E}\left[\sum_t \text{sg}\!\left[\frac{\pi_\theta(y_t \mid x,y_{\lt t})}{\mu_{\theta_{\text{old}}}(y_t \mid x,y_{\lt t})}\right] \cdot R(x,y) \cdot \log \pi_\theta(y_t \mid x,y_{\lt t})\right]
+```
 
-关键结论：当 $\pi_\theta \approx \mu_{\theta_{\text{old}}}$ 时
+关键结论：当 $`\pi_\theta \approx \mu_{\theta_{\text{old}}}`$ 时
 
-$$\nabla_\theta J^{\text{seq}}(\theta) \approx \nabla_\theta J^{\text{token}}(\theta)$$
+```math
+\nabla_\theta J^{\text{seq}}(\theta) \approx \nabla_\theta J^{\text{token}}(\theta)
+```
 
 也就是说 token-level 目标只在策略相近时才与真目标一阶等价。**任何让二者偏离的 trick（如 length normalization）都会破坏一阶近似的 validity**。
 
 #### IS 权重的两源分解（Eq. 5）
 
-$$\frac{\pi_\theta(y_t|\cdot)}{\mu_{\theta_{\text{old}}}(y_t|\cdot)} = \underbrace{\frac{\pi_{\theta_{\text{old}}}(y_t|\cdot)}{\mu_{\theta_{\text{old}}}(y_t|\cdot)}}_{\text{训练-推理 discrepancy}} \times \underbrace{\frac{\pi_\theta(y_t|\cdot)}{\pi_{\theta_{\text{old}}}(y_t|\cdot)}}_{\text{policy staleness}}$$
+```math
+\frac{\pi_\theta(y_t|\cdot)}{\mu_{\theta_{\text{old}}}(y_t|\cdot)} = \underbrace{\frac{\pi_{\theta_{\text{old}}}(y_t|\cdot)}{\mu_{\theta_{\text{old}}}(y_t|\cdot)}}_{\text{训练-推理 discrepancy}} \times \underbrace{\frac{\pi_\theta(y_t|\cdot)}{\pi_{\theta_{\text{old}}}(y_t|\cdot)}}_{\text{policy staleness}}
+```
 
 - **训练-推理 discrepancy**：训练 vs 推理引擎的数值差异（kernel、batch-invariance、FP8 vs BF16、MoE 路由不同）；
 - **Policy staleness**：rollout 策略与当前训练策略的差异（来自 mini-batch 切分 / 异步 RL）。
@@ -965,39 +975,45 @@ $$\frac{\pi_\theta(y_t|\cdot)}{\mu_{\theta_{\text{old}}}(y_t|\cdot)} = \underbra
 
 #### Importance Sampling Correction
 
-token-level IS 权重 $r_t = \pi_\theta(y_t|\cdot)/\mu_{\theta_{\text{old}}}(y_t|\cdot)$ 修正两类 gap。
+token-level IS 权重 $`r_t = \pi_\theta(y_t|\cdot)/\mu_{\theta_{\text{old}}}(y_t|\cdot)`$ 修正两类 gap。
 - **去掉 IS correction → rapid training collapse + entropy 急剧下降**。
 - IS 权重外包 stop-gradient，梯度不流经权重本身。
 
 #### Clipping (PPO-style 不对称)
 
-$$M_t = \begin{cases} 0 & \hat A>0 \text{ 且 } r_t > 1+\epsilon_{\text{high}} \\ 0 & \hat A<0 \text{ 且 } r_t < 1-\epsilon_{\text{low}} \\ 1 & \text{otherwise} \end{cases}$$
+```math
+M_t = \begin{cases} 0 & \hat A\gt 0 \text{ 且 } r_t \gt  1+\epsilon_{\text{high}} \\ 0 & \hat A\lt 0 \text{ 且 } r_t \lt  1-\epsilon_{\text{low}} \\ 1 & \text{otherwise} \end{cases}
+```
 
-- 超出比率边界的 token 不更新，**抑制 policy staleness**，使 $\pi_\theta$ 不偏离 $\mu_{\theta_{\text{old}}}$ 太远，保住一阶近似。
-- 论文取 $\epsilon_{\text{high}}=0.27$ 、 $\epsilon_{\text{low}}=0.2$ （即 r 超过 1.27 或低于 0.8 时 mask 掉）。
+- 超出比率边界的 token 不更新，**抑制 policy staleness**，使 $`\pi_\theta`$ 不偏离 $`\mu_{\theta_{\text{old}}}`$ 太远，保住一阶近似。
+- 论文取 $`\epsilon_{\text{high}}=0.27`$ 、 $`\epsilon_{\text{low}}=0.2`$ （即 r 超过 1.27 或低于 0.8 时 mask 掉）。
 
 #### Routing Replay (R2 / R3) — 针对 MoE
 
 MoE 模型中分母还要带 expert 路由：
 
-$$\frac{\pi_\theta(y_t \mid x,y_{\lt t}, e^\pi_t)}{\mu_{\theta_{\text{old}}}(y_t \mid x,y_{\lt t}, e^{\mu_{\text{old}}}_t)}$$
+```math
+\frac{\pi_\theta(y_t \mid x,y_{\lt t}, e^\pi_t)}{\mu_{\theta_{\text{old}}}(y_t \mid x,y_{\lt t}, e^{\mu_{\text{old}}}_t)}
+```
 
 路由不一致 → 同时放大 train-infer discrepancy 和 staleness。
 
-- **Vanilla Routing Replay (R2)**：训练时强制使用训练引擎旧策略的 expert 路由 $e^\pi_{\text{old},t}$ → 只缓解 policy staleness。
-- **Rollout Routing Replay (R3)**：训练时直接 replay 推理引擎 rollout 时的 expert 路由 $e^{\mu_{\text{old}},t}$ → 同时缓解两个 gap。
+- **Vanilla Routing Replay (R2)**：训练时强制使用训练引擎旧策略的 expert 路由 $`e^\pi_{\text{old},t}`$ → 只缓解 policy staleness。
+- **Rollout Routing Replay (R3)**：训练时直接 replay 推理引擎 rollout 时的 expert 路由 $`e^{\mu_{\text{old}},t}`$ → 同时缓解两个 gap。
 - **代价**：对目标策略引入 bias（target policy 不再用其"自然"路由）。off-policiness 越大，这个 bias 越值得付。
 
 ### 1.4 MiniRL 算法
 
 完整目标：
 
-$$J_{\text{MiniRL}}(\theta) = \mathbb{E}\!\left[\sum_t M_t \cdot \text{sg}\!\left[\frac{\pi_\theta(y_t \mid x,y_{\lt t})}{\mu_{\theta_{\text{old}}}(y_t \mid x,y_{\lt t})}\right] \cdot \hat A(x,y) \cdot \log \pi_\theta(y_t \mid x,y_{\lt t})\right]$$
+```math
+J_{\text{MiniRL}}(\theta) = \mathbb{E}\!\left[\sum_t M_t \cdot \text{sg}\!\left[\frac{\pi_\theta(y_t \mid x,y_{\lt t})}{\mu_{\theta_{\text{old}}}(y_t \mid x,y_{\lt t})}\right] \cdot \hat A(x,y) \cdot \log \pi_\theta(y_t \mid x,y_{\lt t})\right]
+```
 
-- $\hat A(x,y) = R(x,y) - \mathbb{E}_{y'}[R(x,y')]$ ，**group-normalized** advantage（同 prompt 内做基线）；
+- $`\hat A(x,y) = R(x,y) - \mathbb{E}_{y'}[R(x,y')]`$ ，**group-normalized** advantage（同 prompt 内做基线）；
 - **没有 length normalization**（即不除以 $|y|$ ）；
 - IS 权重外加 **Truncated Importance Sampling (TIS)**，截断阈值 = 5（Yao et al. 2025）；
-- $M_t$ 为不对称 clipping mask。
+- $`M_t`$ 为不对称 clipping mask。
 
 ### 1.5 实验设置
 
@@ -1012,7 +1028,7 @@ $$J_{\text{MiniRL}}(\theta) = \mathbb{E}\!\left[\sum_t M_t \cdot \text{sg}\!\lef
 | global batch | 1,024–8,192（控制 off-policiness） |
 | max gen length | 32,768 tokens |
 | 总算力 | "hundreds of thousands of GPU hours" |
-| 监控指标 | training reward、token-level entropy $H[\pi_\theta]$ 、 $D_{\text{KL}}[\mu_{\theta_{\text{old}}} \,\Vert\, \pi_{\theta_{\text{old}}}]$ |
+| 监控指标 | training reward、token-level entropy $`H[\pi_\theta]`$ 、 $`D_{\text{KL}}[\mu_{\theta_{\text{old}}} \,\Vert\, \pi_{\theta_{\text{old}}}]`$ |
 
 ### 1.6 关键实验结论
 
@@ -1037,9 +1053,9 @@ $$J_{\text{MiniRL}}(\theta) = \mathbb{E}\!\left[\sum_t M_t \cdot \text{sg}\!\lef
 
 1. **永远带 token-level IS correction**，并在 IS 权重外加 stop-gradient；建议同时加 TIS（threshold≈5）防极端比率。
 2. **不要 length-normalize**：它破坏一阶近似，是一个看起来无害但实际有 bias 的项。
-3. **不对称 clipping** ($\epsilon_{\text{high}}>\epsilon_{\text{low}}$ ，例如 0.27/0.2) 配合 IS 权重可有效抑制 staleness。
+3. **不对称 clipping** ($`\epsilon_{\text{high}}\gt \epsilon_{\text{low}}`$ ，例如 0.27/0.2) 配合 IS 权重可有效抑制 staleness。
 4. **MoE 场景必须处理 routing**：几乎 on-policy（N≤2）→ vanilla R2；显著 off-policy（N≥4）→ rollout R3。
-5. **监控三大量**：training reward、entropy、 $D_{\text{KL}}[\mu_{\text{old}} \| \pi_{\text{old}}]$ 。entropy 骤降 + KL 增大几乎一定是要崩。
+5. **监控三大量**：training reward、entropy、 $`D_{\text{KL}}[\mu_{\text{old}} \| \pi_{\text{old}}]`$ 。entropy 骤降 + KL 增大几乎一定是要崩。
 6. **scale RL 的关键不是冷启动也不是 on-policy/off-policy 哲学**，而是能否让 token-level surrogate 始终维持在它对 sequence-level 真目标的一阶近似域内。
 
 ---
@@ -1051,10 +1067,10 @@ $$J_{\text{MiniRL}}(\theta) = \mathbb{E}\!\left[\sum_t M_t \cdot \text{sg}\!\lef
 
 ### 四大核心 trick（精确配置）
 
-1. **Clip-Higher（解耦上下 clip）**： $\epsilon_{\text{low}}=0.2$ ， $\epsilon_{\text{high}}=0.28$ 。提升低概率 token 的上行空间，缓解 entropy collapse。
+1. **Clip-Higher（解耦上下 clip）**： $`\epsilon_{\text{low}}=0.2`$ ， $`\epsilon_{\text{high}}=0.28`$ 。提升低概率 token 的上行空间，缓解 entropy collapse。
 2. **Dynamic Sampling**：过滤 batch 中 accuracy=0 或 accuracy=1 的 prompt（无梯度），持续采样直至 batch 填满"有梯度"样本。
 3. **Token-Level Policy Gradient Loss**：用 `1/Σ|o_i|` 跨样本对 token 求和，而非 GRPO 的 sample-level `(1/G)·(1/|o_i|)` 嵌套平均；让长序列对梯度有应得权重。
-4. **Overlong Reward Shaping**： $L_{\max}=16384$ ， $L_{\text{cache}}=4096$ 软惩罚窗（线性从 0 衰减到 -1），硬截断 $L_{\text{hard}}=20480$ ；也提供 "overlong filtering" 变体（直接 mask loss）。
+4. **Overlong Reward Shaping**： $`L_{\max}=16384`$ ， $`L_{\text{cache}}=4096`$ 软惩罚窗（线性从 0 衰减到 -1），硬截断 $`L_{\text{hard}}=20480`$ ；也提供 "overlong filtering" 变体（直接 mask loss）。
 
 ### 关键超参
 
@@ -1074,12 +1090,12 @@ $$J_{\text{MiniRL}}(\theta) = \mathbb{E}\!\left[\sum_t M_t \cdot \text{sg}\!\lef
 ### GRPO 改造（与 DeepSeek/DAPO 对照）
 
 - **完全移除 KL 罚项**：策略本就大幅偏离参考模型，保留 ref model 是"无意义的计算"。
-- **Clip-Higher**: $\epsilon_{\text{high}} \in [0.26, 0.28]$ 动态调整以维持 group entropy 稳定。
-- **去掉 group std 归一化**: $\hat A_i = r_i − \mu$ ，避免 easy/hard 题被 σ 误放大。
-- **Minibatch 内 advantage 归一化** (Andrychowicz et al. 2020 风格)： $\hat A_{\text{norm}} = (\hat A_i − \hat A_{\text{mean}})/\hat A_{\text{std}}$ 。
+- **Clip-Higher**: $`\epsilon_{\text{high}} \in [0.26, 0.28]`$ 动态调整以维持 group entropy 稳定。
+- **去掉 group std 归一化**: $`\hat A_i = r_i − \mu`$ ，避免 easy/hard 题被 σ 误放大。
+- **Minibatch 内 advantage 归一化** (Andrychowicz et al. 2020 风格)： $`\hat A_{\text{norm}} = (\hat A_i − \hat A_{\text{mean}})/\hat A_{\text{std}}`$ 。
 - **Loss 归一化用 group 内总长度**（防止组内长度偏差）。
 - **过滤 non-diverse groups**：全对/全错的 group 直接剔除（与 DAPO dynamic sampling 同源）。
-- **不用 entropy bonus**：尝试过但跨域不稳定；用 $\epsilon_{\text{high}}$ 控熵更稳。
+- **不用 entropy bonus**：尝试过但跨域不稳定；用 $`\epsilon_{\text{high}}`$ 控熵更稳。
 
 ### Reward 四维
 
@@ -1087,7 +1103,7 @@ format / correctness (math 严格 verifier, code) / length (soft penalty) / **la
 
 ### Multi-stage 训练 schedule
 
-- 生成长度 $L_{\max} − L_{\text{cache}}$ 从 **16k → 24k → 32k** 递增
+- 生成长度 $`L_{\max} − L_{\text{cache}}`$ 从 **16k → 24k → 32k** 递增
 - n_batch 同步从 **8k → 4k → 2k** 递减（控 KV cache 显存）
 
 ### Async 系统
@@ -1112,7 +1128,7 @@ format / correctness (math 严格 verifier, code) / length (soft penalty) / **la
 - **Test-Difficulty-Driven Code Reward**: 按 pass-rate 分组 test cases，提供"严格奖励"（必须通过本组与较低组）与"软奖励"（组内分数均分到 test）双模式，解决稀疏奖励。
 - **Easy Data Re-sampling**: 完美 pass 的题进入"easy pool"，以 **α=10%** 概率回采，稳定训练。
 - **Removal of KL Loss**: 删 KL 项后训练更稳，且不影响稳定性。
-- **Clip-Higher**: 抬高 $\epsilon_{\text{high}}$ （具体值未披露），保留 $\epsilon_{\text{low}}$ 。
+- **Clip-Higher**: 抬高 $`\epsilon_{\text{high}}`$ （具体值未披露），保留 $`\epsilon_{\text{low}}`$ 。
 - **Seamless Rollout Engine**: continuous rollout + async reward computation + early termination，训练 **2.29×**、验证 **1.96×** 加速。
 
 ### 关键超参
@@ -1142,8 +1158,8 @@ SFT 数据 500K→6M，RL 窗口 32K→48K，AIME24 超 DeepSeek-R1。
 ### MAGIC pipeline 核心 trick
 
 - **Multi-stage context length curriculum**: **8K → 16K → 32K**，每阶段收敛后切换；同时丢弃上阶段已 acc=1 的 prompt（online filtering）。
-- **Token-level loss without length normalization**: 去掉 $1/|y_{ij}|$ （与 DAPO 一致方向）。
-- **Adaptive entropy control**: 目标熵 **tgt_ent = 0.2**，根据当前熵与目标差动态调整 $\alpha_k$ 系数。
+- **Token-level loss without length normalization**: 去掉 $`1/|y_{ij}|`$ （与 DAPO 一致方向）。
+- **Adaptive entropy control**: 目标熵 **tgt_ent = 0.2**，根据当前熵与目标差动态调整 $`\alpha_k`$ 系数。
 - **Strict on-policy training**: 7B/32B 用 **1 grad step / rollout**（慢但抑制 entropy collapse 最有效）；Math-7B 用 2 steps + adaptive entropy 补偿。
 - **Rejection sampling on zero-advantage groups**：组内全部 advantage 为 0 时整组剔除。
 - **不用 KL loss、不用 advantage mask**（包括对 truncated 响应）。
@@ -1274,16 +1290,18 @@ GLM-4.6: tool-calling 准确度进一步提升，拒识未知工具、最小化�
 
 ### 核心:序列级 IS 比率(对 GRPO 的根本批判)
 
-GRPO 的 per-token ratio 问题:每个 next-token 分布**只有 1 个样本**,IS 在 $N{=}1$ 上起不到分布校正,只注入高方差噪声 → 沿序列累积 → 被 clip 放大 → **崩溃往往不可逆**。GSPO 的原则:**"优化目标的单位应当与 reward 的单位匹配"**——reward 是序列级,IS 也该是序列级。
+GRPO 的 per-token ratio 问题:每个 next-token 分布**只有 1 个样本**,IS 在 $`N{=}1`$ 上起不到分布校正,只注入高方差噪声 → 沿序列累积 → 被 clip 放大 → **崩溃往往不可逆**。GSPO 的原则:**"优化目标的单位应当与 reward 的单位匹配"**——reward 是序列级,IS 也该是序列级。
 
-$$s_i(\theta)=\left(\frac{\pi_\theta(y_i|x)}{\mu_{\theta_{\text{old}}}(y_i|x)}\right)^{1/|y_i|}=\exp\left(\frac{1}{|y_i|}\sum_t\log\frac{\pi_\theta(y_{i,t})}{\mu_{\theta_{\text{old}}}(y_{i,t})}\right)$$
+```math
+s_i(\theta)=\left(\frac{\pi_\theta(y_i|x)}{\mu_{\theta_{\text{old}}}(y_i|x)}\right)^{1/|y_i|}=\exp\left(\frac{1}{|y_i|}\sum_t\log\frac{\pi_\theta(y_{i,t})}{\mu_{\theta_{\text{old}}}(y_{i,t})}\right)
+```
 
-即对 per-token log-ratio 取**几何平均(长度归一)**,clip 也在序列级:$\min(s_i\hat A_i,\ \mathrm{clip}(s_i,1-\epsilon,1+\epsilon)\hat A_i)$。**GSPO-token 变体**:为多轮/per-token 优势定制,用 stop-gradient 技巧让数值上等价于 GSPO 但允许逐 token advantage。
+即对 per-token log-ratio 取**几何平均(长度归一)**,clip 也在序列级:$`\min(s_i\hat A_i,\ \mathrm{clip}(s_i,1-\epsilon,1+\epsilon)\hat A_i)`$。**GSPO-token 变体**:为多轮/per-token 优势定制,用 stop-gradient 技巧让数值上等价于 GSPO 但允许逐 token advantage。
 
 ### MoE 红利:免 Routing Replay(对照 MiniRL R3 §1.3)
 
 - **量化证据**:Qwen3-30B-A3B 上,每次梯度更新后对同一 rollout,**约 10% 激活专家与旧策略不同**,越深越严重 → token 级比率剧烈波动失效。
-- GRPO 因此**必须**上 Routing Replay(缓存并重放 $\mu_{\text{old}}$ 的路由,即 MiniRL R3 那一类),代价是内存/通信 + 限制 MoE 实际容量。
+- GRPO 因此**必须**上 Routing Replay(缓存并重放 $`\mu_{\text{old}}`$ 的路由,即 MiniRL R3 那一类),代价是内存/通信 + 限制 MoE 实际容量。
 - **GSPO 只依赖序列似然,对单 token 路由漂移不敏感 → 彻底不需要 Routing Replay**。原文:"GRPO necessitates Routing Replay … GSPO has obviated the need"。**这是 MoE agentic RL 的一条捷径。**
 
 ### 超参 / 反直觉
@@ -1307,11 +1325,13 @@ $$s_i(\theta)=\left(\frac{\pi_\theta(y_i|x)}{\mu_{\theta_{\text{old}}}(y_i|x)}\r
 
 ### CISPO:裁权重而非裁 token
 
-$$\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \mathrm{sg}(\hat r_{i,t})\,\hat A_{i,t}\,\log\pi_\theta(o_{i,t})\right],\quad \hat r_{i,t}=\mathrm{clip}(r_{i,t},1-\epsilon^{IS}_{\text{low}},1+\epsilon^{IS}_{\text{high}})$$
+```math
+\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \mathrm{sg}(\hat r_{i,t})\,\hat A_{i,t}\,\log\pi_\theta(o_{i,t})\right],\quad \hat r_{i,t}=\mathrm{clip}(r_{i,t},1-\epsilon^{IS}_{\text{low}},1+\epsilon^{IS}_{\text{high}})
+```
 
 - PPO/GRPO 的 clip 会把被裁 token 的**梯度直接置零(丢 token)**;CISPO 改为裁 IS 权重,**所有 token 都保留梯度**。
 - **关键动机:fork token**——"However / Wait / Aha / Recheck"这类低概率、高 ratio 的推理分叉点,在 PPO/GRPO 下"第一次 on-policy 更新就被裁掉",而它们对稳熵、支撑长程探索最关键。在"每 batch 16 轮 off-policy 更新"设置下,**DAPO 的 clip-higher 效果差,CISPO 才稳**。
-- 只调 $\epsilon^{IS}_{\text{high}}$、**不设下界**;去掉权重裁剪即退化为标准 policy gradient。
+- 只调 $`\epsilon^{IS}_{\text{high}}`$、**不设下界**;去掉权重裁剪即退化为标准 policy gradient。
 - **2x 加速声称**(Qwen2.5-32B-base 受控实验):仅用 50% 步数匹配 DAPO,同步数同时优于 GRPO/DAPO——属单设置受控结果。
 
 ### ⭐ Train-Infer 精度失配:坑在 LM head 不在 attention(§44 必引)
@@ -1326,9 +1346,9 @@ $$\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \
 
 - **AdamW 默认配置不收敛**:RL 梯度幅度跨 1e-18~1e-5、多数 <1e-14,VeRL 默认 (β2=0.999, eps=1e-8) **不收敛**,改 **β1=0.9, β2=0.95, eps=1e-15**。
 - **重复早停**:连续 3000 token 每个概率 >0.99 即 halt 生成。
-- **80K 长度扩展的 pattern collapse**:扩到 80K 时尾部乱码,根因**负样本长度增长远快于正样本**(负梯度失衡);修复 = 早停 + sample/token-level norm 结合 + 降 grad clip 和 $\epsilon^{IS}_{\text{high}}$;长度分阶段 40K→48K→…→80K。
+- **80K 长度扩展的 pattern collapse**:扩到 80K 时尾部乱码,根因**负样本长度增长远快于正样本**(负梯度失衡);修复 = 早停 + sample/token-level norm 结合 + 降 grad clip 和 $`\epsilon^{IS}_{\text{high}}`$;长度分阶段 40K→48K→…→80K。
 - **GenRM 长度偏置**:离线缓解常失败,最终靠 **RL 中在线监控长度偏置 + 一旦检测到 length-seeking 就立刻重校准 GenRM**。
-- **算力**:512×H800,3 周,租赁约 **$0.53M**(厂商估算);M1-80k SWE-bench Verified 56.0。
+- **算力**:512×H800,3 周,租赁约 **\$0.53M**(厂商估算);M1-80k SWE-bench Verified 56.0。
 
 ---
 
@@ -1337,7 +1357,7 @@ $$\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \
 - **arXiv**: [2507.20673](https://arxiv.org/abs/2507.20673) · [GitHub](https://github.com/callsys/GMPO)
 - **定位**: token reward 的**几何平均**版 GRPO,对离群 IS 比率更鲁棒。
 
-**机制**:GRPO 最大化 token reward 的算术平均,单个极端 ratio 就能把 token 梯度顶飞;GMPO 改用**几何平均**(= log-ratio 的算术平均,在 log 空间实现),由 AM-GM 不等式保证目标值范围更窄、方差更低。**token 级 clip**(反对 DeepSeek-R1 的序列级 clip,后者"一触发就把整条序列梯度置零"),但范围放宽到 **$(e^{-0.4}, e^{0.4})$**(远宽于 GRPO 0.8/1.2、DAPO 0.8/1.28)。
+**机制**:GRPO 最大化 token reward 的算术平均,单个极端 ratio 就能把 token 梯度顶飞;GMPO 改用**几何平均**(= log-ratio 的算术平均,在 log 空间实现),由 AM-GM 不等式保证目标值范围更窄、方差更低。**token 级 clip**(反对 DeepSeek-R1 的序列级 clip,后者"一触发就把整条序列梯度置零"),但范围放宽到 **$`(e^{-0.4}, e^{0.4})`$**(远宽于 GRPO 0.8/1.2、DAPO 0.8/1.28)。
 
 **结果**:R1-Distill-Qwen-7B 上比 GRPO **平均 +4.1%(63.4 vs 59.3)**,跨 5 个数学 benchmark;MoE(Qwen3-32B)MATH500 +2.1%;多模态 +1.4%。消融:去长度归一 −0.7%;CountDown 上 MoE-GRPO 约 250 步崩、GMPO 稳(与 GSPO 的 MoE 不稳观察互证)。**LR 未披露**。
 
@@ -1350,7 +1370,7 @@ $$\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \
 
 **偏置 1 — Response-length bias(来自 $/|o|$)**:按序列长度归一 → **长的错误回答被欠惩罚**(penalty 被 $1/|o|$ 削弱);等价说法是 loss ≈ advantage/length,**偏好"短且对",不惩罚"长且错"** → 错误回答越训越长。DAPO 的 token-level **减轻但未消除**。
 
-**偏置 2 — Question-difficulty bias(来自 $/\mathrm{std}$)**:按 $\mathrm{std}(r)$ 归一 → 给**低方差的题(极易/极难)不成比例的权重**。
+**偏置 2 — Question-difficulty bias(来自 $`/\mathrm{std}`$)**:按 $`\mathrm{std}(r)`$ 归一 → 给**低方差的题(极易/极难)不成比例的权重**。
 
 **修复("GRPO Done Right")**:去掉 per-response 长度归一(改用常数 $L$)+ 去掉 per-group std 归一。效果:防止越写越长、提 token 效率、准确率不降。附带发现:**主流开源 PPO 实现普遍误用 length 归一**(`loss.mean(-1)`),源自预训练惯性。极简 recipe:Qwen2.5-Math-7B,8×A100 / 27h 达 SOTA。
 
@@ -1367,7 +1387,7 @@ $$\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \
 
 **反直觉发现(全是反例,价值极高)**:
 - **clip-higher 可能无益甚至有害**:base 模型 clip 率本就 ~0.003,抬上界几乎无效;只有 aligned 模型显著减缓熵崩。
-- **存在 scaling 依赖**:4B 上 $\epsilon_{\text{high}}{=}0.32$ 最优,**8B 上 0.28 最优**,小模型成立、大模型不成立。语言学上:0.2 主要裁连接词,0.28 转向裁功能词、放开推理结构探索。
+- **存在 scaling 依赖**:4B 上 $`\epsilon_{\text{high}}{=}0.32`$ 最优,**8B 上 0.28 最优**,小模型成立、大模型不成立。语言学上:0.2 主要裁连接词,0.28 转向裁功能词、放开推理结构探索。
 - **token-level vs sequence-level loss 取决于模型**:token-level 在 base 更有效,**aligned 模型多数数据集上 sequence-level 反而胜**——损失聚合无统一最优。
 - Lite-PPO 还**丢掉 overlong filtering**(它限制小模型生成长尾)。
 
@@ -1380,7 +1400,7 @@ $$\mathcal J_{\text{CISPO}}=\mathbb E\!\left[\frac{1}{\sum_i|o_i|}\sum_i\sum_t \
 
 ### Sigmoidal 算力-性能曲线
 
-放弃幂律,用**饱和 sigmoid**拟合 pass-rate 对 log-compute:$R_C-R_0=(A-R_0)\cdot\frac{1}{1+(C_{\text{mid}}/C)^B}$。**A** = 天花板,**B** = 算力效率/陡峭度,**C_mid** = 半增益算力中点。拟合从 ~1.5k GPU-h 后开始。
+放弃幂律,用**饱和 sigmoid**拟合 pass-rate 对 log-compute:$`R_C-R_0=(A-R_0)\cdot\frac{1}{1+(C_{\text{mid}}/C)^B}`$。**A** = 天花板,**B** = 算力效率/陡峭度,**C_mid** = 半增益算力中点。拟合从 ~1.5k GPU-h 后开始。
 
 ### 推荐配方(ScaleRL)
 
@@ -1408,7 +1428,7 @@ PipelineRL(off-policy **k=8**)+ **CISPO** loss(选它而非 GSPO/DAPO)+ prompt-l
 
 **核心争议**:rStar2/[2504.13837](https://arxiv.org/abs/2504.13837) 说 RL 只锐化 base 分布;ProRL 反驳——存在任务 **base 无论采多少次都给不出正确解,而 RL 模型达 100% pass**(boxnet / family_relationships 等 OOD 任务从 ~0 到完美)。Creativity Index 也显示长时 RL 产出更新颖轨迹。
 
-**稳定长 RL 的关键技巧**:**KL 正则 + 参考策略硬重置**——KL 项训久会主导致停滞,**当验证停滞就把 ref 硬重置到近期 policy 快照、并重置 optimizer**,恢复稳定并促使更大幅偏离 base。配 DAPO(decoupled clip $\epsilon_{\text{low}}{=}0.2,\epsilon_{\text{high}}{=}0.4$ + dynamic sampling)。**>2k 步仍持续增益**(v2 到 3k 步,加 REINFORCE++-baseline + cosine length penalty)。32×H100 ≈ 16k GPU-h,框架 verl。
+**稳定长 RL 的关键技巧**:**KL 正则 + 参考策略硬重置**——KL 项训久会主导致停滞,**当验证停滞就把 ref 硬重置到近期 policy 快照、并重置 optimizer**,恢复稳定并促使更大幅偏离 base。配 DAPO(decoupled clip $`\epsilon_{\text{low}}{=}0.2,\epsilon_{\text{high}}{=}0.4`$ + dynamic sampling)。**>2k 步仍持续增益**(v2 到 3k 步,加 REINFORCE++-baseline + cosine length penalty)。32×H100 ≈ 16k GPU-h,框架 verl。
 
 **诚实的 nuance**:pass@k 有三种形态——**Diminish / Plateau / Sustained**,**并非所有任务都扩展**:简单任务早饱和、prolonged RL 无额外收益,**复杂任务(如 coding)才持续扩展**。结果:1.5B 在 math/code/STEM/逻辑全面超 R1-Distill-1.5B,常追平 7B。
 
@@ -1432,9 +1452,9 @@ PipelineRL(off-policy **k=8**)+ **CISPO** loss(选它而非 GSPO/DAPO)+ prompt-l
 - **arXiv**: [2501.12599](https://arxiv.org/abs/2501.12599)
 - **定位**: 文档 §19 提到的"K1.5 闭式 L2 trust region"的真正出处。**不用 MCTS / value 网络 / PRM**。
 
-**机制(替代 PPO clip 的是 L2 平方惩罚)**:优化 KL 正则化目标 $\max_\theta\mathbb E[r]-\tau\mathrm{KL}(\pi_\theta\|\pi_{\theta_i})$,有闭式最优解 $\pi^*\propto\pi_{\theta_i}\exp(r/\tau)$;取对数得 surrogate = **对 log-ratio 的 L2 平方损失**,梯度 = 带经验均值 baseline $\bar r$(**无 value 网络**)的 policy-gradient **减去** $\frac\tau2\nabla(\log\frac{\pi_\theta}{\pi_{\theta_i}})^2$ 软信赖域项。这是 K2(§19)"L2 trust region"的来源——一个软的、对称的二次约束,而非 PPO 硬 clip。
+**机制(替代 PPO clip 的是 L2 平方惩罚)**:优化 KL 正则化目标 $`\max_\theta\mathbb E[r]-\tau\mathrm{KL}(\pi_\theta\|\pi_{\theta_i})`$,有闭式最优解 $`\pi^*\propto\pi_{\theta_i}\exp(r/\tau)`$;取对数得 surrogate = **对 log-ratio 的 L2 平方损失**,梯度 = 带经验均值 baseline $\bar r$(**无 value 网络**)的 policy-gradient **减去** $`\frac\tau2\nabla(\log\frac{\pi_\theta}{\pi_{\theta_i}})^2`$ 软信赖域项。这是 K2(§19)"L2 trust region"的来源——一个软的、对称的二次约束,而非 PPO 硬 clip。
 
-**其他**:长度惩罚需 **warmup**(先不加再引入,否则伤前期);**Partial Rollouts**(未完成轨迹存 replay buffer 续跑 + 重复检测早停);**Long2Short** 四法(模型权重平均 / 最短拒绝采样 / DPO / Long2short RL)。参考策略每轮更新为当前 $\pi_{\theta_i}$ + **每轮重置 optimizer**。结果 long-CoT AIME 77.5 / MATH500 96.2。**τ、lr、batch 未公开。**
+**其他**:长度惩罚需 **warmup**(先不加再引入,否则伤前期);**Partial Rollouts**(未完成轨迹存 replay buffer 续跑 + 重复检测早停);**Long2Short** 四法(模型权重平均 / 最短拒绝采样 / DPO / Long2short RL)。参考策略每轮更新为当前 $`\pi_{\theta_i}`$ + **每轮重置 optimizer**。结果 long-CoT AIME 77.5 / MATH500 96.2。**τ、lr、batch 未公开。**
 
 ---
 
@@ -1444,7 +1464,7 @@ PipelineRL(off-policy **k=8**)+ **CISPO** loss(选它而非 GSPO/DAPO)+ prompt-l
 
 ### DeepScaleR (Agentica/Berkeley, 1.5B) — 迭代上下文扩展
 
-从 R1-Distill-1.5B 起,GRPO + **8K→16K→24K** 迭代扩 ctx → AIME24 **28.8% → 43.1%**(超 o1-preview),成本仅 **~3,800 A100-h ≈ $4,500**。**核心教训**:**"先学会高效推理,再学会推理更长"**——直接长 ctx 低效,因"错误的长回答更难学"。8K 阶段准确率先从 28.9 跌到 22.9,但 **response 长度从 5,500 降到 3,500、train reward 46%→58%**(逼出精炼 pattern)。**扩 ctx 的信号:response clipping ratio 从 4.2%→6.5%**(8K 成瓶颈)。⚠️ 争议:FastCuRL 复查发现 8K 时约 45% 输出被截断,初始 ctx 最优值仍有争议。
+从 R1-Distill-1.5B 起,GRPO + **8K→16K→24K** 迭代扩 ctx → AIME24 **28.8% → 43.1%**(超 o1-preview),成本仅 **~3,800 A100-h ≈ \$4,500**。**核心教训**:**"先学会高效推理,再学会推理更长"**——直接长 ctx 低效,因"错误的长回答更难学"。8K 阶段准确率先从 28.9 跌到 22.9,但 **response 长度从 5,500 降到 3,500、train reward 46%→58%**(逼出精炼 pattern)。**扩 ctx 的信号:response clipping ratio 从 4.2%→6.5%**(8K 成瓶颈)。⚠️ 争议:FastCuRL 复查发现 8K 时约 45% 输出被截断,初始 ctx 最优值仍有争议。
 
 ### Polaris (HKU × ByteDance Seed, 4B/7B) — 难度均衡 + 长度外推
 
@@ -1452,7 +1472,7 @@ PipelineRL(off-policy **k=8**)+ **CISPO** loss(选它而非 GSPO/DAPO)+ prompt-l
 
 ### Light-R1 (奇虎360, 32B/14B) — 课程 SFT+DPO+GRPO,全公开数据
 
-三阶段(课程 SFT → semi-on-policy DPO → GRPO),**纯公开数据**从 Qwen2.5-32B-Instruct 起。关键 **3K 数据集**;GRPO ~220 步,训练中 **response 长度与 reward 同步上升**(健康信号)。Light-R1-14B-DS:AIME24 74.0/25 60.2,**首次证明 RL 在 14B 数学推理有效**(+~2% 绝对);成本 **12×H800 / 6h ≈ $1000**。
+三阶段(课程 SFT → semi-on-policy DPO → GRPO),**纯公开数据**从 Qwen2.5-32B-Instruct 起。关键 **3K 数据集**;GRPO ~220 步,训练中 **response 长度与 reward 同步上升**(健康信号)。Light-R1-14B-DS:AIME24 74.0/25 60.2,**首次证明 RL 在 14B 数学推理有效**(+~2% 绝对);成本 **12×H800 / 6h ≈ \$1000**。
 
 ---
 
@@ -1470,9 +1490,9 @@ PipelineRL(off-policy **k=8**)+ **CISPO** loss(选它而非 GSPO/DAPO)+ prompt-l
 
 ### 熵-性能定律(Cui et al. [2505.22617](https://arxiv.org/abs/2505.22617))
 
-- **$R=-a\cdot e^{H}+b$**:验证性能是策略熵的指数函数,$H{\to}0$ 时天花板 $=-a+b$。**熵塌 = reward 上限被锁死**。
+- **$`R=-a\cdot e^{H}+b`$**:验证性能是策略熵的指数函数,$`H{\to}0`$ 时天花板 $=-a+b$。**熵塌 = reward 上限被锁死**。
 - **前 200 步消耗 73% 的熵、拿走 76% 增益**;前 800 步 >93% 增益 + 94% 熵损失。**超 2/3 训练步只在做边际优化**——量化背书了"用最少 compute 触达上限"。
-- **机制**:$H(k{+}1)-H(k)\approx-\mathrm{Cov}(\log\pi,\Delta\text{logits})$,PG 下 $\propto-\mathrm{Cov}(\log\pi, \pi\cdot A)$,该协方差全程为正 → 熵单调降。
+- **机制**:$`H(k{+}1)-H(k)\approx-\mathrm{Cov}(\log\pi,\Delta\text{logits})`$,PG 下 $`\propto-\mathrm{Cov}(\log\pi, \pi\cdot A)`$,该协方差全程为正 → 熵单调降。
 - **治法(掐极端离群)**:top-0.02% token 平均协方差 **5.654** vs 全体 **0.003**——极小一撮驱动崩溃。**Clip-Cov**(对高协方差 token 裁剪,clip ratio 2e-4)/ **KL-Cov**(加 KL 罚,k=2e-3@7B / 2e-4@32B)。32B 上比 GRPO **+6.4%**,熵能维持 "10× higher"。
 
 ### Beyond 80/20:高熵 minority token 驱动学习(Qwen [2506.01939](https://arxiv.org/abs/2506.01939))
@@ -1516,12 +1536,12 @@ PipelineRL(off-policy **k=8**)+ **CISPO** loss(选它而非 GSPO/DAPO)+ prompt-l
 ### Trajectory & masking（重点）
 
 - 多轮模板：`<think>...</think> <search>q</search>` pause → retriever 返回 `<information>docs</information>` → 继续 → `<answer>...</answer>`
-- **Retrieved Token Loss Mask**：PPO/GRPO 损失加 indicator $I(y_t)$ ，对 `<information>` 之间 token 置 0，**只对 LLM 生成 token 计算 policy gradient**。Table 4 ablation 显示去 mask 性能掉很多。
+- **Retrieved Token Loss Mask**：PPO/GRPO 损失加 indicator $`I(y_t)`$ ，对 `<information>` 之间 token 置 0，**只对 LLM 生成 token 计算 policy gradient**。Table 4 ablation 显示去 mask 性能掉很多。
 - **Max action budget = 4** search 调用；每次 retrieve top-3 passages。
 
 ### Reward
 
-纯 outcome EM， $r = \text{EM}(\hat a, a)$ 0/1，**无 format reward、无中间 retrieval reward**。
+纯 outcome EM， $`r = \text{EM}(\hat a, a)`$ 0/1，**无 format reward、无中间 retrieval reward**。
 
 ### 关键超参
 
@@ -1556,8 +1576,8 @@ Backbone: Qwen2.5-3B/7B base/instruct；**No SFT cold start**。
 - **算法**: 两阶段 Reinforce++（不需要 distillation、不需要 SFT）
 
 **两阶段 reward**：
-- **Stage 1**（学调用 retrieval）： $R_{\text{retrieval}} = 0.5$ if n≥1 else 0； $R_{\text{format}} = 0.5/0$
-- **Stage 2**（学答题）： $R_{\text{answer}} = \text{F1}(\hat a, a)$ ； $R_{\text{format}} = 0$ if 对 else **−2**
+- **Stage 1**（学调用 retrieval）： $`R_{\text{retrieval}} = 0.5`$ if n≥1 else 0； $`R_{\text{format}} = 0.5/0`$
+- **Stage 2**（学答题）： $`R_{\text{answer}} = \text{F1}(\hat a, a)`$ ； $`R_{\text{format}} = 0`$ if 对 else **−2**
 
 **Modified Reinforce++ with RAG-rollout**：碰到 `<|end_of_query|>` pause 调 retriever，把结果包 `<|begin_of_documents|>...<|end_of_documents|>` 拼回；**这两标签间所有 token 不参与 loss 和 IS**。
 
@@ -1580,14 +1600,14 @@ Backbone: Qwen2.5-3B/7B base/instruct；**No SFT cold start**。
 
 **SFT cold start**: 720 HotpotQA + 85 2Wiki, 6 epochs, lr 2e-5, batch 64；document token mask。
 
-**RL Loss**: $\mathcal L = -J_{\text{Mask}}(\theta) + \mu \mathcal L_M(\theta)$ 。
+**RL Loss**: $`\mathcal L = -J_{\text{Mask}}(\theta) + \mu \mathcal L_M(\theta)`$ 。
 
 **Reward**：
 - **answer**：1 if 答案≤10 词 **且** Cover-EM=True else 0（兼约束简洁）
 - **format**：0 / −2
-- **内部知识鼓励**： $R_{\text{group}}(q, o_i) = \min(2\sigma^2, \eta)$ ，σ 为同组正确 trajectory 检索次数的标准差（鼓励同组内检索次数有差异，间接奖励"能不查就不查"），η=2 上限
+- **内部知识鼓励**： $`R_{\text{group}}(q, o_i) = \min(2\sigma^2, \eta)`$ ，σ 为同组正确 trajectory 检索次数的标准差（鼓励同组内检索次数有差异，间接奖励"能不查就不查"），η=2 上限
 
-**Memorization**：另训一个 rewriting model 把检索文档消化成不依赖检索的推理路径，正确样本组成 𝒯，loss $\mathcal L_M$ 让 policy 内化外部知识。
+**Memorization**：另训一个 rewriting model 把检索文档消化成不依赖检索的推理路径，正确样本组成 𝒯，loss $`\mathcal L_M`$ 让 policy 内化外部知识。
 
 **超参**: lr 2e-6；RL batch 1024 / rollout 64；rollouts 16；KL β 1e-4；μ=0.1；max retrievals 8；temp 1.0 / top-p 0.95；Qwen-2.5-7B-Instruct；8142 样本 / 1 epoch。
 
@@ -1688,9 +1708,11 @@ $R = +1 / -1$ （is_equivalent 二值）。**没有 format reward、没有 code-
 
 ### Hierarchical Reward
 
-$$R = \begin{cases} \max(\text{Acc} + r_M, \text{Acc}) & \text{format OK 且 Acc>0} \\ 0 & \text{format OK 且 Acc=0} \\ -1 & \text{otherwise} \end{cases}$$
+```math
+R = \begin{cases} \max(\text{Acc} + r_M, \text{Acc}) & \text{format OK 且 Acc}\gt 0 \\ 0 & \text{format OK 且 Acc=0} \\ -1 & \text{otherwise} \end{cases}
+```
 
-其中 $r_M = 0.1$ if trajectory 同时含 `<search>` **和** `<python>` else 0——**显式奖励多工具协作**。
+其中 $`r_M = 0.1`$ if trajectory 同时含 `<search>` **和** `<python>` else 0——**显式奖励多工具协作**。
 
 ### 关键超参
 
@@ -1727,8 +1749,8 @@ XML 格式：`<search>q</search>` / `<python>code</python>` / `<result>output</r
 
 - **Math**：answer=2，format=0.5 relaxed + 0.5 strict，tool_execution = 成功 Python 调用比例
 - **Function calling (τ-bench / BFCL v3)**：
-  - State reward $= \text{StatR}_{\max} \times \text{State}_{\text{match}} / \text{State}_{\text{total}}$
-  - Function reward $= \text{FR}_{\max} \times \text{F}_{\text{match}} / \text{F}_{\text{total}}$
+  - State reward $`= \text{StatR}_{\max} \times \text{State}_{\text{match}} / \text{State}_{\text{total}}`$
+  - Function reward $`= \text{FR}_{\max} \times \text{F}_{\text{match}} / \text{F}_{\text{total}}`$
   - Format reward 0.025–0.1
 
 ### 关键超参
@@ -1756,9 +1778,9 @@ XML 格式：`<search>q</search>` / `<python>code</python>` / `<result>output</r
 
 **GRPO-RoC**：每个 q **oversample 2G** 条 trajectory，再下采样到 G：
 - **Negative**：均匀采 ⌊|O_neg|/2⌋，**保留 failure 多样性**
-- **Positive**：按 penalty score $p_{\text{total}} = p_{\text{err}} + p_{\text{format}}$ 反比例采样，**优先选 tool-error 少、format 干净的正样本**
-  - $p_{\text{err}}$ = tool error 数 / total tool call 数（无 tool call 默认 0.5，鼓励用工具）
-  - $p_{\text{format}}$ ：`<answer>` 标签数异常按比例罚
+- **Positive**：按 penalty score $`p_{\text{total}} = p_{\text{err}} + p_{\text{format}}`$ 反比例采样，**优先选 tool-error 少、format 干净的正样本**
+  - $`p_{\text{err}}`$ = tool error 数 / total tool call 数（无 tool call 默认 0.5，鼓励用工具）
+  - $`p_{\text{format}}`$ ：`<answer>` 标签数异常按比例罚
 
 ### Reward
 
@@ -1827,7 +1849,7 @@ XML 格式：`<search>q</search>` / `<python>code</python>` / `<result>output</r
 
 ### 故障机理(含 Proposition 3.1)
 
-多轮 TIR 的 RL 不稳定根源是**工具反馈引入的分布漂移**:工具返回是 OOD 的,模型在其条件下生成"漂离预训练分布、高度随机、被赋予异常低概率的 token";这些低概率 token 喂回下一轮 → **跨轮复合恶化** → 后段轮次崩溃 → **灾难性梯度范数爆炸**。对负奖励轨迹,IS ratio **上方无界**,某 token 旧策略概率极小时,一次小更新就让 ratio 爆炸。Proposition 3.1 给出梯度范数 $\propto \rho_{i,t}\cdot|\hat A_i|\cdot\sqrt{1-2P(c)+\sum_j P(j)^2}$,当采样 token 被赋低概率时 $(1-2P(c))$ 趋最大,持续放大梯度。
+多轮 TIR 的 RL 不稳定根源是**工具反馈引入的分布漂移**:工具返回是 OOD 的,模型在其条件下生成"漂离预训练分布、高度随机、被赋予异常低概率的 token";这些低概率 token 喂回下一轮 → **跨轮复合恶化** → 后段轮次崩溃 → **灾难性梯度范数爆炸**。对负奖励轨迹,IS ratio **上方无界**,某 token 旧策略概率极小时,一次小更新就让 ratio 爆炸。Proposition 3.1 给出梯度范数 $`\propto \rho_{i,t}\cdot|\hat A_i|\cdot\sqrt{1-2P(c)+\sum_j P(j)^2}`$,当采样 token 被赋低概率时 $(1-2P(c))$ 趋最大,持续放大梯度。
 
 ### 监控信号 + 修复
 
@@ -1881,7 +1903,7 @@ Qwen2.5-7B:text-base AIME24 3.2 → **SimpleTIR 50.5**;MATH500 51.9→88.4;HMMT2
 - **2026 新发现**:**即使熵保持高位,推理仍可能漂向固定模板**——单输入内看似多样,**跨输入几乎相同**。称 template collapse,"一种熵和所有现有指标都看不见的故障模式"。
 - **分解**:推理多样性 = 输入内多样性 $H(Z|X)$ + 跨输入可区分性 $I(X;Z)$;**熵可以很高而 $I(X;Z)\to 0$**。
 - **诊断:互信息 MI proxy**(批内 cross-scoring,无需外部模型):MI z-score 与性能 Spearman **+0.39**,而各熵指标 **−0.11~−0.14(方向反了)**——"MI 预测性能比熵可靠 2 倍,熵甚至指向错误方向"。
-- ⭐ **给 StarPO-S 打补丁(stabilizer 会反噬)**:任务梯度 $\le\sqrt{\mathrm{Var}(R|X)}\cdot C$,**当 reward 方差趋近 0,任务信号消失但正则梯度恒定**,对所有推理链施加"均匀收缩" → **反而加速 template collapse**。即**奖励区分度弱时盲目加正则有害**。
+- ⭐ **给 StarPO-S 打补丁(stabilizer 会反噬)**:任务梯度 $`\le\sqrt{\mathrm{Var}(R|X)}\cdot C`$,**当 reward 方差趋近 0,任务信号消失但正则梯度恒定**,对所有推理链施加"均匀收缩" → **反而加速 template collapse**。即**奖励区分度弱时盲目加正则有害**。
 - **修复:SNR-aware filtering**——用 prompt 内 reward 方差作信噪比,保留 top-ρ(**ρ≈0.9**),还省 **26–41% 每步时间**;诊断指标低时过滤反而掉点(要先看 SNR 再决定要不要过滤)。
 
 ### 多轮崩溃 → 信号 → 修复 速查(共识 15 配套)
@@ -1890,7 +1912,7 @@ Qwen2.5-7B:text-base AIME24 3.2 → **SimpleTIR 50.5**;MATH500 51.9→88.4;HMMT2
 |---|---|---|---|
 | 梯度范数尖刺 | void turn → IS 爆炸 | SimpleTIR §17A | 过滤含 void turn 的整条轨迹 |
 | reward std 断崖(早于 mean) | Echo Trap | RAGEN §17B | top-25% 方差过滤 + PPO critic + clip-higher |
-| 熵单调坍缩($R{=}{-}a e^H{+}b$) | 性能被熵锁死 | Entropy Mechanism §10L | Clip-Cov / KL-Cov 抑制 top-0.02% 高协方差 token |
+| 熵单调坍缩($`R{=}{-}a e^H{+}b`$) | 性能被熵锁死 | Entropy Mechanism §10L | Clip-Cov / KL-Cov 抑制 top-0.02% 高协方差 token |
 | 熵剧烈震荡 | 多轮 entropy 失控 | EPO §17C | 轨迹级熵正则 + 熵走廊 [0.5,1.5]·H̄ |
 | 熵高但 MI(X;Z)→0 | template collapse | RAGEN-2 §17C | MI 诊断 + SNR(reward 方差)过滤 ρ≈0.9 |
 | 工具返回后 token 熵飙升 | 工具反馈不确定性未利用 | ARPO §17E | 高熵点自适应分支采样 |
@@ -1920,7 +1942,7 @@ Qwen2.5-7B:text-base AIME24 3.2 → **SimpleTIR 50.5**;MATH500 51.9→88.4;HMMT2
 - **arXiv**: [2507.19849](https://arxiv.org/abs/2507.19849) · Tool-Star(§15)同班人马的后续,号称比 Tool-Star 快 4×
 - **核心观察(pilot study)**:**每次工具调用后,前 10–50 个 token 熵急剧上升**(模型看到工具输出后最不确定);早期推理熵也升但低于工具反馈后;**search 反馈比 python 反馈引入更多不确定性**(前者返回信息性文本,后者返回确定性数字)。
 
-**熵驱动自适应分支 rollout**:全局预算 M,先采 N 条整轨,剩余留给 partial sampling;在工具返回的高熵点按 $P_t=\alpha+\beta\cdot\Delta H_t$ 概率分支(把一条 partial path 分成 Z 条),把 rollout 预算花在"最该探索"的地方,复杂度从 $O(n^2)$ 降到 $O(n\log n)$。advantage 用 soft 设定(共享前缀 token 同 IS ratio)。**数字**:Qwen3-14B deep search,GAIA 36.9→43.7、WebWalker 30→36;**用一半 tool 预算**达到/超过 trajectory-level RL。
+**熵驱动自适应分支 rollout**:全局预算 M,先采 N 条整轨,剩余留给 partial sampling;在工具返回的高熵点按 $`P_t=\alpha+\beta\cdot\Delta H_t`$ 概率分支(把一条 partial path 分成 Z 条),把 rollout 预算花在"最该探索"的地方,复杂度从 $O(n^2)$ 降到 $O(n\log n)$。advantage 用 soft 设定(共享前缀 token 同 IS ratio)。**数字**:Qwen3-14B deep search,GAIA 36.9→43.7、WebWalker 30→36;**用一半 tool 预算**达到/超过 trajectory-level RL。
 
 > 与 Kimi-Researcher 的 turn-level partial rollout(§18)对照:都在长 agentic 轨迹上做"局部续采",但 ARPO 的触发点是**熵(探索价值)**,Kimi 是**超时(系统效率)**——一个为质量、一个为吞吐。
 
@@ -1972,7 +1994,7 @@ Qwen2.5-7B:text-base AIME24 3.2 → **SimpleTIR 50.5**;MATH500 51.9→88.4;HMMT2
 
 - **Format reward**：tool call 非法 / trajectory 超限 → 罚
 - **Correctness reward**：format 合法时按 ground-truth 给二值
-- **Gamma decay（关键设计）**： $r_{\text{step}} = \gamma^{s-1} \cdot R_{\text{outcome}}$ ，鼓励更短正确轨迹；防止"答对但啰嗦"
+- **Gamma decay（关键设计）**： $`r_{\text{step}} = \gamma^{s-1} \cdot R_{\text{outcome}}`$ ，鼓励更短正确轨迹；防止"答对但啰嗦"
 
 ### 稳定化 trick
 
@@ -1992,7 +2014,7 @@ Qwen2.5-7B:text-base AIME24 3.2 → **SimpleTIR 50.5**;MATH500 51.9→88.4;HMMT2
 ### RL 算法
 
 **沿用 K1.5 的策略优化算法**（非 PPO / 非 GRPO clip 风格）：
-- 推导自 KL-regularized reward maximization 的闭式解 $\pi^* \propto \pi_{\text{old}} \cdot \exp(r/\tau)$
+- 推导自 KL-regularized reward maximization 的闭式解 $`\pi^* \propto \pi_{\text{old}} \cdot \exp(r/\tau)`$
 - 实际 loss：policy-gradient surrogate + **L2 squared-log-ratio trust region**（替代 PPO 的 min/clip）
 - **group 经验均值 $\bar r$ 作 baseline**（GRPO-style，但用 L2 而非 clip）
 - 允许 off-policy 复用（partial rollout 跨 iteration）
@@ -2099,8 +2121,8 @@ R(ŷ, y) = 0.1 · score_format + 0.9 · score_answer
 
 ### Tool token masking
 
-- SFT 阶段 observation 不计入 loss：indicator $\mathbb{1}[x_i \neq o]$ 屏蔽 observation tokens
-- RL 阶段：tool response 进 context 参与 $\pi_{\theta_{\text{old}}}$ 计算，但**只对模型生成 token 做优化**
+- SFT 阶段 observation 不计入 loss：indicator $`\mathbb{1}[x_i \neq o]`$ 屏蔽 observation tokens
+- RL 阶段：tool response 进 context 参与 $`\pi_{\theta_{\text{old}}}`$ 计算，但**只对模型生成 token 做优化**
 
 ### 稳定化 trick
 
@@ -2602,7 +2624,7 @@ else:        r = difflib.SequenceMatcher(predicted_patch, oracle_patch).ratio() 
 
 ### SWE-smith(Princeton/Stanford, [2504.21798](https://arxiv.org/abs/2504.21798))— 反转 SWE-bench,先建环境再造 bug
 
-- **规模**:**50,137 实例 / 128 仓库**(比此前大一个数量级),存储仅 295GB(等效 SWE-bench 估 50–150TB,**~500× 省存储**),总成本 **$1,360**。
+- **规模**:**50,137 实例 / 128 仓库**(比此前大一个数量级),存储仅 295GB(等效 SWE-bench 估 50–150TB,**~500× 省存储**),总成本 **\$1,360**。
 - **核心 recipe**:**先建环境再造任务**——对最新 commit 跑 SWE-agent 安装+跑测试,人工确认 >80% 测试通过后做 Docker 镜像,**每仓共享一个环境**(这是省 500× 存储的关键)。
 - **4 种造 bug 策略(各有 yield/成本/F2P)**:Combine Bugs(96.9% yield, 0¢)、LM Modify(56%, 0.38¢)、LM Rewrite(35%, 3.93¢)、PR Mirror(反转 PR)、Procedural(13 种 AST 变换, 0¢)。**校验**:patch 应用后必须**破坏 ≥1 个原本通过的测试**(Fail-to-Pass);测试运行 **2 分钟上限**(超时丢弃,治 flaky)。
 - 训练:**仅 rejection sampling SFT(明确未探索 RL)**;SWE-agent-LM-32B = **40.2% pass@1**(开源 SOTA 当时)。
@@ -2645,7 +2667,7 @@ else:        r = difflib.SequenceMatcher(predicted_patch, oracle_patch).ratio() 
 
 ### Satori-SWE-32B([2505.23604](https://arxiv.org/abs/2505.23604))— 进化式 test-time scaling + RL
 
-**EvoScale**:把生成当进化过程——LLM 作 mutation operator 迭代精修 patch,使分布移向高分区;**RL 后可自进化,推理时无需 reward model 选择器**(K=5/轮,≤4 轮=20 样本)。reward 用 **potential-based shaping**($r_t=R(y^t)-R(y^{t-1})$)。Best@1 35.8% → Best@50 41.6%。**效率主张**:32B vs 70B、30K vs 百万级数据、50 vs 500 样本(~10× 采样效率)。
+**EvoScale**:把生成当进化过程——LLM 作 mutation operator 迭代精修 patch,使分布移向高分区;**RL 后可自进化,推理时无需 reward model 选择器**(K=5/轮,≤4 轮=20 样本)。reward 用 **potential-based shaping**($`r_t=R(y^t)-R(y^{t-1})`$)。Best@1 35.8% → Best@50 41.6%。**效率主张**:32B vs 70B、30K vs 百万级数据、50 vs 500 样本(~10× 采样效率)。
 
 ---
 
@@ -2987,7 +3009,7 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 | MiniRL | implicit IS | **asymmetric 0.27/0.2** | — | — | 1024-8192 | **无 length norm** | 32k |
 | **GSPO**(§10A) | 0 | **序列级 3e-4/4e-4** | — | — | — | **序列级几何平均** | 用于 Qwen3;免 routing replay |
 | **CISPO**(§10B) | 0 | **只裁 IS 权重上界,不丢 token** | — | 16 轮复用 | — | token Σ | 40K→80K;**FP32 LM head** |
-| **GMPO**(§10C) | — | **token 级 $(e^{-0.4},e^{0.4})$** | 未披露 | 8 | 128 | **几何平均 + 长度归一** | 3k |
+| **GMPO**(§10C) | — | **token 级 $`(e^{-0.4},e^{0.4})`$** | 未披露 | 8 | 128 | **几何平均 + 长度归一** | 3k |
 | **Dr.GRPO**(§10D) | — | 标准 | — | — | — | **去 /\|o\| + 去 /std**(常数 L) | 防越写越长 |
 | **Lite-PPO**(§10E) | **0** | base 抬界无用;4B=0.32/8B=0.28 | 1e-6 | 8 | 1024 | **group 均值 + batch std + token-level** | 丢 overlong filter |
 | **ScaleRL**(§10F) | — | **CISPO**(选它而非 GSPO/DAPO) | 见附录 | 16 | 768→2048 | prompt-level + batch 归一 | **FP32 LM head**(天花板 0.52→0.61) |
@@ -3046,7 +3068,7 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 | **1. Tool/observation token mask loss & IS** | Search-R1 (§11, `<information>` mask)、R1-Searcher (§12, `<begin_of_documents>` mask)、ReTool (§13, `<interpreter>` mask)、ToRL (§14, OBSERVATION mask)、WebDancer (§21)、WebSailor (§22)、Nebius (§29)、ARTIST (§16) | Agent Lightning (§36) 用 transition 抽取等价替代——不存就不需要 mask |
 | **2. 移除 KL 项** | DAPO (§2, β=0)、Magistral (§3)、MiMo (§4)、Skywork-OR1 (§5)、ReTool (§13, β=0.0)、ToRL (§14, omit)、rStar2 (§17)、DeepSWE (§25) | DeepSeek-R1 (§6, β=0.001)、Search-R1 (§11, β=0.001)、R1-Searcher Llama (§12, β=1e-4)、Llama 4 |
 | **3. Clip-Higher 0.2/0.28** | DAPO (§2, 0.2/0.28 首倡)、rStar2 (§17, 0.2/0.28)、Nebius (§29, 0.2/0.3→0.2/0.26)、Magistral (§3, ε_high 动态)、MiniRL (§1, 0.2/0.27)、Skywork-OR1 (§5)、MiMo (§4) | DeepSeek-R1 (§6, ε=10 几乎不裁)、Search-R1 (§11, 对称 0.2) |
-| **4. Outcome-only reward** | ReTool (§13, ±1)、ToRL (§14, ±1 + Code-Exec reward 无提升)、rStar2 (§17, 0/1 + 论文反对 shaping)、Search-R1 (§11, 纯 EM)、Search-R1 Empirical (intermediate retrieval reward 有害)、DeepSWE (§25, Pass/Fail 二值)、Kimi-Researcher (§18)、Tongyi DR (§24) | Tool-Star (§15, multi-tool $r_M=0.1$)、Magistral (§3, 四维)、R1-Searcher (§12, 两阶段)、Kimi-Researcher (§18, γ-decay 隐式) |
+| **4. Outcome-only reward** | ReTool (§13, ±1)、ToRL (§14, ±1 + Code-Exec reward 无提升)、rStar2 (§17, 0/1 + 论文反对 shaping)、Search-R1 (§11, 纯 EM)、Search-R1 Empirical (intermediate retrieval reward 有害)、DeepSWE (§25, Pass/Fail 二值)、Kimi-Researcher (§18)、Tongyi DR (§24) | Tool-Star (§15, multi-tool $`r_M=0.1`$)、Magistral (§3, 四维)、R1-Searcher (§12, 两阶段)、Kimi-Researcher (§18, γ-decay 隐式) |
 | **5. 反 length norm / overlong filtering** | MiniRL (§1.7)、DAPO (§2, token-level Σ)、Skywork-OR1 (§5)、Magistral (§3, group total length 折中)、rStar2 (§17 失败案例 1, "overlong filtering 反而让 overlong 比例上升")、Nebius (§29, soft length penalty) | DeepSWE (§25, Compact Filtering)——但只对"打不完"的样本 mask,不是普遍超长 |
 | **6. Dynamic sampling / zero-adv filtering** | DAPO (§2 首倡)、Magistral (§3)、Skywork-OR1 (§5)、ASearcher (§20)、WebSailor DUPO (§22, **复制路线,比 DAPO 快 2-3×**)、Skywork 课程式丢弃、rStar2 Stage 3 (§17) | 无明确反例;唯一不做的工作通常是 rollout 极便宜(SWE-RL §26 single-turn) |
 | **7. Actor lr ≈ 1e-6** | DAPO (§2, 1e-6+warmup 20)、ReTool (§13)、Search-R1 (§11)、rStar2 (§17)、Nebius (§29)、MiMo (§4) | DeepSeek-R1 (§6, 3e-6)、R1-Searcher (§12, 2e-6) |
@@ -3070,7 +3092,7 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 
 ### 核心观点
 
-> **同一份权重 $\theta_{\text{old}}$,在 training engine(Megatron/FSDP BF16)和 inference engine(vLLM/SGLang FP8)上算出来的 logprob 不严格相等**——这不是 bug,是默认事实。
+> **同一份权重 $`\theta_{\text{old}}`$,在 training engine(Megatron/FSDP BF16)和 inference engine(vLLM/SGLang FP8)上算出来的 logprob 不严格相等**——这不是 bug,是默认事实。
 >
 > 不修正这个不一致,几步训练之内 entropy 必崩。前面共识 12 + 监控类 2 给的是"如何监控",本节给"为什么会有 + 如何修"。
 
@@ -3101,12 +3123,12 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 - **现象**:同一 token 在训推两端被路由到不同 expert,**等价于换了模型**;ratio 完全无意义
 - **机制**:MoE router 对输入分布敏感,inference engine 的 batch 组织、激活精度都会改变路由结果
 - **对策**:**Routing Replay**(MiniRL §1.3)
-  - **R2(Vanilla)**:训练时强制用训练引擎旧策略的路由 $e^{\pi}_{\text{old}}$ ——只缓解 policy staleness
-  - **R3(Rollout)**:训练时直接 replay 推理引擎 rollout 时的路由 $e^{\mu_{\text{old}}}$ ——同时缓解 train-infer 和 staleness 两个 gap
+  - **R2(Vanilla)**:训练时强制用训练引擎旧策略的路由 $`e^{\pi}_{\text{old}}`$ ——只缓解 policy staleness
+  - **R3(Rollout)**:训练时直接 replay 推理引擎 rollout 时的路由 $`e^{\mu_{\text{old}}}`$ ——同时缓解 train-infer 和 staleness 两个 gap
   - **决策表**:N=gbs/mbs ≤ 2(几乎 on-policy)用 R2;N ≥ 4(显著 off-policy)用 R3——MiniRL §1.6 实验给出的数值
 
 **来源 6(额外)— mini-batch 内 policy staleness**
-- **现象**:大 batch 拆 N 个 mini-batch 做 N 次梯度更新, $\pi_\theta$ 已经从 $\mu_{\theta_{\text{old}}}$ 漂走,但仍按 on-policy 算
+- **现象**:大 batch 拆 N 个 mini-batch 做 N 次梯度更新, $`\pi_\theta`$ 已经从 $`\mu_{\theta_{\text{old}}}`$ 漂走,但仍按 on-policy 算
 - **对策**:**token-level IS**(共识 2 移除 KL 后的标配)+ **Clip-Higher**(共识 3)+ N≥4 时加 R3
 
 ### 实战 checklist(优先级排序)
@@ -3135,7 +3157,7 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 
 > 这一节把 §44 从"经验"升级到一个被正式命名的问题,并补上 **TIS 的争议**(它不是银弹)、**FP32 LM head 的双重佐证**、**双侧 clip**、以及**新算法(GSPO/CISPO)作为另一类解法**。
 
-**① 问题被正式 framing("secretly off-policy")**:论文 *"Your Efficient RL Framework Secretly Brings You Off-Policy RL Training"*(Feng Yao 等,NeurIPS 2025;[notion](https://fengyao.notion.site/off-policy-rl) / [verl PR #2953](https://github.com/volcengine/verl/pull/2953))把它讲透:训练后端(FSDP/Megatron)与推理后端(vLLM/SGLang)**即便参数 θ 完全相同**,对同一 token 也给出显著不同概率,极端时一个给 1、一个给 0。**名义 on-policy 训练实为有非平凡偏置的 off-policy**。作者**排除了"纯 vLLM bug"假说**(patch vLLM 暴露真实概率 + lm_head 转 FP32 后失配仍在)。修复 = **TIS(Truncated Importance Sampling)**:对 $\rho=\pi_{\text{train}}/\pi_{\text{infer}}$ 做**单边截断** $\min(\rho,C)$——注意是**单边**(下方自由、只截上方),区别于 PPO/CISPO 的双边;token 级。
+**① 问题被正式 framing("secretly off-policy")**:论文 *"Your Efficient RL Framework Secretly Brings You Off-Policy RL Training"*(Feng Yao 等,NeurIPS 2025;[notion](https://fengyao.notion.site/off-policy-rl) / [verl PR #2953](https://github.com/volcengine/verl/pull/2953))把它讲透:训练后端(FSDP/Megatron)与推理后端(vLLM/SGLang)**即便参数 θ 完全相同**,对同一 token 也给出显著不同概率,极端时一个给 1、一个给 0。**名义 on-policy 训练实为有非平凡偏置的 off-policy**。作者**排除了"纯 vLLM bug"假说**(patch vLLM 暴露真实概率 + lm_head 转 FP32 后失配仍在)。修复 = **TIS(Truncated Importance Sampling)**:对 $`\rho=\pi_{\text{train}}/\pi_{\text{infer}}`$ 做**单边截断** $\min(\rho,C)$——注意是**单边**(下方自由、只截上方),区别于 PPO/CISPO 的双边;token 级。
 
 **② ⚠️ TIS 不是银弹(关键争议,务必写明)**:
 - **正面**:Qwen2.5-32B + DAPO 上 TIS "明显提升";**量化 rollout 场景 TIS 大幅弥合 gap**,使 FP8 rollout 可用。
@@ -3175,9 +3197,9 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 | 200B-20B MoE thinking | 200B-A20B | "Tensor+Expert+Sequence 并行" + Streaming | — | Seed-Thinking-v1.5 (§9) |
 | 1T-32B MoE agentic | 1T-A32B MoE | 未披露 | — | Kimi K2 (§19) |
 | 工业级 SWE agent | — | 多 region 千卡 + 数十万 sandbox | 持续部署 | Cursor Composer 2.5 (§32)、Qwen3-Coder (§30)、Anthropic (§33) |
-| **1.5B 小模型数学(极致性价比)** | 1.5B dense | **8→32× A100** | **3,800 A100·h ≈ $4,500** | DeepScaleR (§10J) |
-| **14B/32B 数学(全公开数据)** | 14B/32B | **12× H800** | **~6h ≈ $1,000** | Light-R1 (§10J) |
-| **456B-A46B MoE reasoning** | 456B-A46B MoE | **512× H800** | **3 周 ≈ $0.53M**(厂商估) | MiniMax-M1 (§10B) |
+| **1.5B 小模型数学(极致性价比)** | 1.5B dense | **8→32× A100** | **3,800 A100·h ≈ \$4,500** | DeepScaleR (§10J) |
+| **14B/32B 数学(全公开数据)** | 14B/32B | **12× H800** | **~6h ≈ \$1,000** | Light-R1 (§10J) |
+| **456B-A46B MoE reasoning** | 456B-A46B MoE | **512× H800** | **3 周 ≈ \$0.53M**(厂商估) | MiniMax-M1 (§10B) |
 | **8B/17B MoE RL scaling 研究** | 8B dense / Scout MoE | **旗舰单次 10 万 GPU·h**(总 >40 万) | — | ScaleRL (§10F) |
 | **32B 去中心化异步 RL** | 32B dense | **全球分布式志愿节点** | **2 周**,train:infer FLOPs≈1:4.5 | INTELLECT-2 (§41E) |
 | **106B-A12B MoE 异步 RL** | 106B-A12B MoE | **512× H200 / 64 节点** | **~2 个月** | INTELLECT-3 (§41E) |
@@ -3189,7 +3211,7 @@ vLLM colocate / server 两模式;**默认开 Truncated Importance Sampling** 校
 - **模型规模 → 卡数对照**:7B → 32 卡,32B → 64 卡,70B → 128–512 卡
 - **multi-turn 比单轮多 2–4× 算力**(rollout 慢 + 异步收益受限)
 - **async / partial rollout 可省 30–50% GPU 闲置**(共识 10)
-- **小模型数学 RL 极便宜**:1.5B–14B 数学推理 RL 只要 **$1k–$5k**(DeepScaleR/Light-R1),是验证 recipe 的最佳起点
+- **小模型数学 RL 极便宜**:1.5B–14B 数学推理 RL 只要 **\$1k–\$5k**(DeepScaleR/Light-R1),是验证 recipe 的最佳起点
 - **agentic / 长 ctx / 去中心化会把成本拉高一个量级**:同规模下 SWE multi-turn、deep research、分布式异步都显著更贵;**RL 总预算约 = 预训练的 10%+**(DeepSeek-V3.2 §33D)
 
 ---
@@ -3492,7 +3514,7 @@ REINFORCE ─ baseline ─→ RLOO / REINFORCE++ ─ 组内 baseline ─→ GRPO
 
 > 这些不是算法,是"配置/转换/显存"层面的硬坑。它们工程价值极高(一个坑能卡你两天),但任何论文都不会写。
 
-- **⭐ verl 强制重算 logprob,不用 rollout engine 返回值**:不论 HF generate 还是 vLLM generate 都能返回每个 token 的 prob,但 verl 在更新阶段(stage2)会用 trainer 的 forward **重算一遍**,丢弃 generate 给的值。原因:generate 时若用了 sampling 后处理(temperature/top-p/repetition penalty 等),inference engine 返回的是**被这些策略改过的** logit,不是模型原始 logit。**这正是 §44 train-infer 不一致的实操根源**——你拿到的"两套 logprob"(infer 的 $\pi_{\text{infer}}$ 与 trainer 重算的 $\pi_{\text{train}}$)天然不等,也是 TIS/MIS 必须存在的理由。**踩坑提醒**:自己手搓 pipeline 时若图省事直接用 generate 的 logprob 当 $\pi_{\text{old}}$,会把后处理偏差混进 ratio。(火山引擎 verl 实践 / CSDN verl 避坑指南)
+- **⭐ verl 强制重算 logprob,不用 rollout engine 返回值**:不论 HF generate 还是 vLLM generate 都能返回每个 token 的 prob,但 verl 在更新阶段(stage2)会用 trainer 的 forward **重算一遍**,丢弃 generate 给的值。原因:generate 时若用了 sampling 后处理(temperature/top-p/repetition penalty 等),inference engine 返回的是**被这些策略改过的** logit,不是模型原始 logit。**这正是 §44 train-infer 不一致的实操根源**——你拿到的"两套 logprob"(infer 的 $`\pi_{\text{infer}}`$ 与 trainer 重算的 $`\pi_{\text{train}}`$)天然不等,也是 TIS/MIS 必须存在的理由。**踩坑提醒**:自己手搓 pipeline 时若图省事直接用 generate 的 logprob 当 $`\pi_{\text{old}}`$,会把后处理偏差混进 ratio。(火山引擎 verl 实践 / CSDN verl 避坑指南)
 - **verl GRPO 内部 repeat-n + uid 分组**:GRPO 要对一条 prompt 采样 n 次,verl 的做法是 stage1 把原始数据 **repeat n 份**,stage2 再按 **uid** 把同源样本聚到一起算 group 的 mean / std。**排障**:advantage 出现"全组同号""分组数对不上""归一化异常"时,先查 uid 是否正确传播、n 是否与 `actor_rollout_ref.rollout.n` 一致——多半是分组配置错,不是算法错。(同上)
 - **⭐ DAPO → GRPO 切换的参数坑(直接报错或静默跑歪)**:从 DAPO recipe 改成 GRPO 时,容易漏改四处——① **删** clip 上限(DAPO `clip_ratio_high=0.28`,GRPO 回对称 `0.2`);② **删** DAPO 专属的 dynamic sampling / 过采样参数;③ **删** soft overlong punishment 相关参数;④ **重新打开 KL**(DAPO `use_kl_loss=False`、GRPO 一般 `use_kl_loss=True` + `kl_loss_coef≈1e-3`、低方差估计 `low_var_kl`)。漏一处就报参数缺失或行为异常。(昇腾社区《后训练强化学习最佳实践》算法切换对照)
 - **⭐ Megatron 词表 padding 致权重 reshard 形状不匹配**:Megatron 为 TP 高效会把词表 padding 到整数倍(`make_vocab_size_divisible_by`,默认 **128**)。HF↔Megatron 权重互转时 embedding/lm_head 形状对不上 → 报错或 logit 错位。**修法**:转换时**显式设 `--vocab-size`**(裁掉 padding 部分)。这是 slime 文档点名的坑;它也间接影响 train-infer 对齐(padding 位的 logit 是 garbage,别让它进 softmax/IS)。(slime 文档 / Megatron checkpoint reshard)
@@ -3503,14 +3525,14 @@ REINFORCE ─ baseline ─→ RLOO / REINFORCE++ ─ 组内 baseline ─→ GRPO
 > §44 已把 6 个物理来源 + TIS 争议 + FP32 LM head 讲透。这里补三件 §44 没有的:**FP16 全局精度这条新路线**、**IS 比率指数爆炸的具体量级**、**sampling-mask 不一致**。
 
 - **⭐ FP16 替 BF16:把 mismatch 直接从根上消掉(Sea AI Lab × NUS, [2510.26788](https://arxiv.org/abs/2510.26788),code [sail-sg/Precision-RL](https://github.com/sail-sg/Precision-RL))**:论文把 train-infer 失配的**根因落到浮点格式本身**。BF16 = 8 指数 + **7 尾数**(范围大但精度低),尾数少 → 舍入误差大 → 在自回归生成里逐 token 累积 → 训推分布显著漂移。FP16 = 5 指数 + **10 尾数**,精度高,**几行代码切过去**即可:GRPO / GSPO / TIS / MIS / 朴素 PG 全部更稳、收敛更快;**verl + Oat 双框架、Dense-14B + MoE + LoRA 全验证**;最朴素的 IS-PG 在 FP16 下**超过所有 BF16 baseline**,且"很多算法修正在 BF16 下本就乏力"。**代价**:FP16 动态范围窄(5 指数),易上下溢,需 **loss scaling** 兜底。**与 §44③ 的关系**:FP32 LM head 是"只改最敏感那一层"、FP16 是"改全局格式"——**两条互补路线**,都指向同一结论:**train-infer 不一致首先是精度问题,不是算法问题**。这是对共识 14 / §44 的重要更新,值得在新项目里直接试。
-- **⭐ 让"IS 比率为什么必须 clip"有数**:设每个 token 的 logprob 训推差 **0.01**、序列长 **2k** → 序列级 log-ratio 累积差 **≈20** → 权重 $e^{20}\approx 4.8\times10^8$,**单条样本就能主宰整个 batch 的梯度**。所以 sequence-level IS "理论正确、实践危险",离不开 **clip + reward 归一化 + 小 lr + 频繁 policy 刷新** 这一整套工程纪律(cnblogs《训推误差与 IS》)。这条数字解释了为什么 §44 的 IS ratio 健康区间要卡在 [0.8, 1.27]、p99 > 5 必上 TIS。
+- **⭐ 让"IS 比率为什么必须 clip"有数**:设每个 token 的 logprob 训推差 **0.01**、序列长 **2k** → 序列级 log-ratio 累积差 **≈20** → 权重 $`e^{20}\approx 4.8\times10^8`$,**单条样本就能主宰整个 batch 的梯度**。所以 sequence-level IS "理论正确、实践危险",离不开 **clip + reward 归一化 + 小 lr + 频繁 policy 刷新** 这一整套工程纪律(cnblogs《训推误差与 IS》)。这条数字解释了为什么 §44 的 IS ratio 健康区间要卡在 [0.8, 1.27]、p99 > 5 必上 TIS。
 - **sampling truncation 不一致(易漏)**:rollout 端 top-p/top-k **截断了词表**、训练端 forward 看**全词表** → 破坏 IS 恒等式(分母的支撑集都不同)。修法是记录并复用采样 mask("Keep Sampling Mask"),需把 rollout API 从 `(token_ids, logprob, finish_reason)` 扩展到**带 sampling mask / expert routing**——这是个 breaking change,目前开源框架普遍没做(HF《16 个开源 RL 库的教训》/ DeepSeek-V3.2 §33D)。**MoE 同理**:gating 的浮点舍入让训推选到不同 expert,prob 大跳变——呼应 §44 来源 5 + §10A GSPO。
 
 ### 50.3 异步 / staleness 深化(§41 续:正负不对称是最值钱的 gem)
 
 > §41/§44④ 已讲双侧 clip、staleness 上界、partial rollout。这里补**正负样本对 staleness 的不对称性**(一类被反复独立发现的规律),以及一组让"异步该多激进"有据可依的工程数字。
 
-- **⭐⭐ staleness 对正/负样本不对称——异步 RL 最该知道的一条**:实测发现**正奖励样本对陈旧度容忍极高,负奖励样本在中等 off-policy 下就崩**。**数学根因**:负优势项是**无界优化**——总能靠把 $\pi_\theta(\tau)\to 0$ 进一步降 loss,陈旧数据下这会灾难性地"在不再探索的概率空间里挖坑",抹掉有用特征;baseline 能降方差但**消不掉这个符号不对称**(在 GRPO / PPO / 原始 REINFORCE 都存在)。**修法**:① **非对称 IS 裁剪**——对负样本更紧的 clip(TOPR / verl Rollout Correction);② 对**负优势 + off-policy** 的样本直接 **zero loss**(OPSM);③ baseline 取略低于行为策略期望 reward,偏向正样本(**AsymRE** [2506.20520]);相关谱系还有 **M2PO**(约束 IS 二阶矩,[2510.01161])、**BAPO**(自适应平衡正负 clip,[2510.18927])。**实操**:异步/高 staleness 训练崩、且崩前负 advantage 样本占比高时,**先对负样本下手**,别一律加 KL。(HF《16 个开源 RL 库的教训》+ 上述论文)
+- **⭐⭐ staleness 对正/负样本不对称——异步 RL 最该知道的一条**:实测发现**正奖励样本对陈旧度容忍极高,负奖励样本在中等 off-policy 下就崩**。**数学根因**:负优势项是**无界优化**——总能靠把 $`\pi_\theta(\tau)\to 0`$ 进一步降 loss,陈旧数据下这会灾难性地"在不再探索的概率空间里挖坑",抹掉有用特征;baseline 能降方差但**消不掉这个符号不对称**(在 GRPO / PPO / 原始 REINFORCE 都存在)。**修法**:① **非对称 IS 裁剪**——对负样本更紧的 clip(TOPR / verl Rollout Correction);② 对**负优势 + off-policy** 的样本直接 **zero loss**(OPSM);③ baseline 取略低于行为策略期望 reward,偏向正样本(**AsymRE** [2506.20520]);相关谱系还有 **M2PO**(约束 IS 二阶矩,[2510.01161])、**BAPO**(自适应平衡正负 clip,[2510.18927])。**实操**:异步/高 staleness 训练崩、且崩前负 advantage 样本占比高时,**先对负样本下手**,别一律加 KL。(HF《16 个开源 RL 库的教训》+ 上述论文)
 - **staleness 一定要设上界并记版本号**:AReaL / ROLL Flash / verl-async 都给 $\eta$(最大版本偏差)+ 全局安全机制;**AReaL 把 IS weight 截在 5.0**;`staleness_threshold=0` 近似同步、`>0` 允许 rollouter "抢跑"。增大 $\eta$ 提吞吐但降收敛——**异步不是越异步越好**,是吞吐/新鲜度/稳定的三角平衡(工业级 Agentic RL 选型指南 / Hands-on Modern RL B.1)。
 - **weight sync 的量级感(决定异步上限)**:NCCL broadcast ~**100–500ms**;verl NCCL + bucketing ~**20ms**;vLLM `packed=True` 把参数打包成 ~1GB uint8 双缓冲、跨 CUDA stream;checkpoint-engine + Mooncake RDMA 给 **Kimi-K2(256×H20)更新万亿参数 ~16–17s**;**LoRA adapter-only sync ~50MB、亚毫秒**(但 OAT 要在 ZeRO-3 关 fused lm_head、ROLL 要关 gradient checkpointing)。(HF《16 个开源 RL 库的教训》)
 - **partial rollout 四味(长尾必备,§50.6 会再引)**:① **implicit continuation**(PipelineRL 永不停生成,逐 transformer forward 换权重,间隙 ~1–10ms);② **abort + prefix-resume**(SkyRL / slime);③ **explicit save-resume / Sleep-Resume**(verl 存 partial token id + logprob,sync 后续上);④ **group cancel**(prime-rl 丢弃 in-flight 整组)。越激进吞吐越高、一致性越差。
