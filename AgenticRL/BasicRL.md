@@ -183,7 +183,7 @@ p_\theta(\tau) = \rho_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t|s_t) \cdot P(s_{t+
 >
 > **💡 Insight：为什么概率要取 log？**
 >
-> 1. **数学等价（前提）**：log 单调递增，$\arg\max \prod p = \arg\max \sum \log p$，最优解不变。
+> 1. **数学等价（前提）**：log 单调递增，$`\arg\max \prod p = \arg\max \sum \log p`$，最优解不变。
 > 2. **数值稳定（工程上必须）**：概率 $\leq 1$，几千项连乘直接下溢到 0；取 log 后变成负数求和，浮点数完全hold住。
 > 3. **求导方便（锦上添花）**：连乘的导数要用乘积法则，每项梯度牵涉所有其他项；求和的导数逐项独立，天然适配 mini-batch SGD。
 >
@@ -278,7 +278,7 @@ REINFORCE 能用，但**方差太大**：每个 $`\nabla \log \pi(a_t|s_t)`$ 都
 >
 > **② 远期奖励不确定性大（实际考量）**：越远的 $`r_{t'}`$ 中间经过的随机步越多，对"当前动作好不好"的信号越模糊。$`\gamma^{t'-t}`$ 指数衰减 = **让近期奖励权重大、远期奖励权重小**，降低方差。
 >
-> **③ 经济学直觉（偏好建模）**：$\gamma$ 相当于"时间偏好率"——今天的 1 块钱比明天的 1 块钱值钱。agent 更看重即时回报，这在很多任务里是合理的归纳偏置。
+> **③ 经济学直觉（偏好建模）**：$`\gamma`$ 相当于"时间偏好率"——今天的 1 块钱比明天的 1 块钱值钱。agent 更看重即时回报，这在很多任务里是合理的归纳偏置。
 >
 > **注意**：加了 $\gamma \lt 1$ 后梯度估计**严格来说引入了偏差**（因为我们改变了优化目标，从最大化总回报变成最大化折扣回报）。但实践中这个偏差远小于它带来的方差收益，所以几乎所有实现都用 $\gamma \in [0.99, 0.999]$。
 
@@ -346,7 +346,7 @@ REINFORCE 能用，但**方差太大**：每个 $`\nabla \log \pi(a_t|s_t)`$ 都
 >
 > **为什么能降方差：** $`\hat G_t`$ 本身可能是很大的正数（比如 +200），波动剧烈。如果 baseline $`b(s_t) \approx \mathbb{E}[\hat G_t | s_t] = V^\pi(s_t)`$，那 $`\hat G_t - b(s_t)`$ 就变成围绕零波动的小数（比如 ±20），数值尺度小一个量级，方差自然小。
 >
-> **直觉：** 原来的信号是"这条轨迹总共拿了 200 分"→ 所有动作都被鼓励。减掉 baseline 后变成"这条轨迹**比平均多拿了 20 分**"→ 只有真正好于平均的动作被鼓励，差于平均的被抑制。信号从"绝对好坏"变成"相对好坏"，更精准、波动更小。这就是为什么 advantage $A^\pi = Q^\pi - V^\pi$ 是最常用的形式——$V^\pi$ 就是那个最优的 baseline。
+> **直觉：** 原来的信号是"这条轨迹总共拿了 200 分"→ 所有动作都被鼓励。减掉 baseline 后变成"这条轨迹**比平均多拿了 20 分**"→ 只有真正好于平均的动作被鼓励，差于平均的被抑制。信号从"绝对好坏"变成"相对好坏"，更精准、波动更小。这就是为什么 advantage $A^\pi = Q^\pi - V^\pi$ 是最常用的形式——$`V^\pi`$ 就是那个最优的 baseline。
 
 其它步骤都只是代数操作。
 
@@ -517,7 +517,7 @@ A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 - $\lambda = 1$ ：退化为 MC（无偏、高方差）
 - 实际常用 $\lambda \in [0.9, 0.99]$
 
-> **💡 推导：$\lambda=1$ 时 GAE 为什么退化为 MC？**
+> **💡 推导：$`\lambda=1`$ 时 GAE 为什么退化为 MC？**
 >
 > 令 $\lambda=1$，GAE 变为 $`\hat A_t = \sum_{l=0}^{\infty} \gamma^l \delta_{t+l}`$。把 $`\delta_{t+l} = r_{t+l} + \gamma V(s_{t+l+1}) - V(s_{t+l})`$ 代入并拆成三个求和：
 >
@@ -535,7 +535,7 @@ A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
 > \hat A_t = \sum_{l=0}^{\infty} \gamma^l r_{t+l} - V(s_t) = G_t - V(s_t)
 > ```
 >
-> 这正是**蒙特卡洛 advantage 估计**：用真实回报 $`G_t`$ 减去 baseline。所有中间的 $V$ 项都望远镜式地消掉了——$\lambda=1$ 意味着"完全不截断，信任真实回报到底"，critic 只作为 baseline 出现一次。
+> 这正是**蒙特卡洛 advantage 估计**：用真实回报 $`G_t`$ 减去 baseline。所有中间的 $V$ 项都望远镜式地消掉了——$`\lambda=1`$ 意味着"完全不截断，信任真实回报到底"，critic 只作为 baseline 出现一次。
 
 **为什么需要 GAE**：在偏差和方差之间提供一个**连续调节旋钮**。这是现代 PPO 的标配。
 
@@ -904,7 +904,7 @@ $\beta$ 根据实际 KL 自适应调整（KL 太大就调大 $\beta$ ）。实�
 > **为什么 forward = mean-seeking，reverse = mode-seeking？**
 >
 > - **Forward KL** $`\sum p \log \frac{p}{q}`$：期望在 $p$ 下取。凡是 $p(x)\gt 0$ 的地方，若 $q(x) \to 0$，则 $`\log \frac{p}{q} \to +\infty`$，KL 爆炸。所以 $q$ **被迫覆盖 $p$ 的所有模式**——哪怕摊薄概率也不能让任何模式裸露 → mean-seeking（宁可模糊也要全覆盖）。
-> - **Reverse KL** $`\sum q \log \frac{q}{p}`$：期望在 $q$ 下取。若 $p(x)\gt 0$ 但 $q(x)=0$，贡献为 $`0 \cdot \log\frac{0}{p} = 0`$，**无惩罚**——$q$ 可以放心忽略 $p$ 的某些模式。但若 $q(x)\gt 0$ 而 $p(x) \to 0$，KL 爆炸——$q$ 绝不能在 $p$ 不支持的地方分配概率 → mode-seeking（锁定 $p$ 的一个高概率模式集中火力）。
+> - **Reverse KL** $`\sum q \log \frac{q}{p}`$：期望在 $q$ 下取。若 $p(x)\gt 0$ 但 $q(x)=0$，贡献为 $`0 \cdot \log\frac{0}{p} = 0`$，**无惩罚**——$`q`$ 可以放心忽略 $p$ 的某些模式。但若 $q(x)\gt 0$ 而 $p(x) \to 0$，KL 爆炸——$`q`$ 绝不能在 $p$ 不支持的地方分配概率 → mode-seeking（锁定 $p$ 的一个高概率模式集中火力）。
 >
 > **OPD（On-Policy Distillation）常用 Reverse KL：** 学生模型用自己生成的样本（on-policy），天然在 $`q_{\text{student}}`$ 下采样，直接适配 reverse KL $`\text{KL}(q_{\text{student}} \| p_{\text{teacher}})`$ 的估计。且 mode-seeking 让蒸馏出的模型输出更 sharp、质量更高，不会在 teacher 的多个模式之间模糊平均（如 GKD: Generalized Knowledge Distillation）。
 
@@ -2685,7 +2685,7 @@ A^{\text{MT-GRPO}}_{i,1} = A^I_i + \alpha A^O_i, \qquad A^{\text{MT-GRPO}}_{i,2}
 R = -a\exp(H) + b
 ```
 
-性能 $R$ 和熵 $H$ 之间是**指数式的此消彼长**——熵耗尽（$H\to 0$）时性能天花板是 $-a+b$，**再加 RL 算力也换不来提升**（>95% 的熵下降/性能提升发生在前 1/3 训练）。
+性能 $R$ 和熵 $H$ 之间是**指数式的此消彼长**——熵耗尽（$`H\to 0`$）时性能天花板是 $-a+b$，**再加 RL 算力也换不来提升**（>95% 的熵下降/性能提升发生在前 1/3 训练）。
 
 **为什么坍缩？** 相邻两步的熵变由 **log-prob 与 advantage 的协方差**主导：
 
@@ -2748,7 +2748,7 @@ H(\pi_{\theta_{k+1}}) - H(\pi_{\theta_k}) \approx -\eta\,\text{Cov}_{a\sim\pi_{\
 | **Agent Lightning** | arXiv:2508.03680（微软）| 把 agent 执行建模为 MDP（每次 LLM 调用 = 一个 transition），**训练-执行解耦**，零改代码接入任意 agent 框架 | **LightningRL** 层级信用分配：把整条 return 分解到每次 LLM 调用 | — |
 | **SkyRL-Agent** | arXiv:2511.16108（伯克利）| 异步 pipeline dispatcher；面向**有状态长程** SWE 任务 | — | dispatcher **1.55×**；SA-SWE-32B 达 39.4% SWE-Verified，成本降 2× |
 
-> 💡 **异步的关键权衡：staleness（陈旧度）**。AReaL 用超参 $\eta$ 限制"生成最多领先训练几个策略版本"（代码 $\eta=4$、数学 $\eta=8$，$\eta=0$ 退化为同步）；ROLL Flash 发现 **async-ratio=2 就近乎最大加速**——**不需要很深的陈旧度**。这与直觉相反：你以为放得越开越快，实则放一点点（领先 2 个版本）就能填满长尾空隙，再多只会加剧 off-policy 不稳。
+> 💡 **异步的关键权衡：staleness（陈旧度）**。AReaL 用超参 $\eta$ 限制"生成最多领先训练几个策略版本"（代码 $\eta=4$、数学 $\eta=8$，$`\eta=0`$ 退化为同步）；ROLL Flash 发现 **async-ratio=2 就近乎最大加速**——**不需要很深的陈旧度**。这与直觉相反：你以为放得越开越快，实则放一点点（领先 2 个版本）就能填满长尾空隙，再多只会加剧 off-policy 不稳。
 
 > ⚠️ **算法层面也会因异步而变**（不只是工程）：SORL（arXiv:2511.20718）【论文实证】发现长程多 turn off-policy 下 token 级 IS ratio 会**重尾化**，梯度范数爆到 $`10^{12}`$–$`10^{18}`$ 量级导致格式坍缩。它的修法是 **turn 级 IS**（一个 turn 一个长度归一化的几何平均权重，本质是 GSPO 序列级权重的 turn 粒度版）+ **裁剪触发的归一化**。⚠️ 但要注意：SORL 的搜索任务只给了**训练曲线没给 EM 数字**，唯一的数值表是医疗 QA vs Search-R1，**没有 vs GSPO/TIS 的正面数值对比**——引用时别夸大。
 
