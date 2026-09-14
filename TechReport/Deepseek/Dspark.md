@@ -303,16 +303,16 @@ DSpark 的解码 cycle（对应论文 Figure 1），用 prompt `ABC` 走一遍�
 
 #### 1.1.2 串行阶段（Sequential Stage）
 
-在 base logit $`U_k`$ 上叠一个**前缀依赖的转移 bias** $`B_k(x_0, x_{<k}, x_k)`$，让每个位置能 condition 在 block 内已采样 token 上。注意：不是定义一个全局归一化的 energy model，而是用**自回归因子分解**诱导一个 causal block 分布（这样每个 token 的概率仍是精确 softmax，满足 rejection sampling 对「精确 per-token 概率」的硬要求）：
+在 base logit $`U_k`$ 上叠一个**前缀依赖的转移 bias** $`B_k(x_0, x_{\lt k}, x_k)`$，让每个位置能 condition 在 block 内已采样 token 上。注意：不是定义一个全局归一化的 energy model，而是用**自回归因子分解**诱导一个 causal block 分布（这样每个 token 的概率仍是精确 softmax，满足 rejection sampling 对「精确 per-token 概率」的硬要求）：
 
 ```math
-P(X \mid x_0) = \prod_{k=1}^{\gamma} p_k(x_k \mid x_0, x_{<k}), \quad p_k(v \mid x_0, x_{<k}) = \frac{\exp(U_k(v) + B_k(x_0, x_{<k}, v))}{\sum_{u \in \mathcal{V}} \exp(U_k(u) + B_k(x_0, x_{<k}, u))}
+P(X \mid x_0) = \prod_{k=1}^{\gamma} p_k(x_k \mid x_0, x_{\lt k}), \quad p_k(v \mid x_0, x_{\lt k}) = \frac{\exp(U_k(v) + B_k(x_0, x_{\lt k}, v))}{\sum_{u \in \mathcal{V}} \exp(U_k(u) + B_k(x_0, x_{\lt k}, u))}
 ```
 
-> **一句话读懂**：并行骨干已经算好了每个位置的 logit $`U_k`$，串行头只是**在上面加一个 bias $`B_k`$、重新 softmax**。关键在于 $`B_k`$ 依赖 $`x_{<k}`$（block 内前面已采样的 token），所以必须等位置 $`k-1`$ 采完才能算位置 $`k`$ 的 bias——这就是"串行"的全部含义。重活（读懂上下文）并行骨干已经干完，串行头只做「瞄一眼前一个采样结果、顺手调整 logit」的小事。
+> **一句话读懂**：并行骨干已经算好了每个位置的 logit $`U_k`$，串行头只是**在上面加一个 bias $`B_k`$、重新 softmax**。关键在于 $`B_k`$ 依赖 $`x_{\lt k}`$（block 内前面已采样的 token），所以必须等位置 $`k-1`$ 采完才能算位置 $`k`$ 的 bias——这就是"串行"的全部含义。重活（读懂上下文）并行骨干已经干完，串行头只做「瞄一眼前一个采样结果、顺手调整 logit」的小事。
 
 * $`x_0`$：上一轮验证的 anchor token；$`U_k`$：并行骨干在位置 $`k`$ 的 base logit；$`\mathcal{V}`$：词表。
-* 推理时串行头左到右按 $`p_k(\cdot \mid x_0, x_{<k})`$ 采样。**因为这步天然串行，串行头必须极轻**（$`T_{\text{sequential}} \ll T_{\text{parallel}}`$），保证整体 draft 延迟仍由并行阶段主导。
+* 推理时串行头左到右按 $`p_k(\cdot \mid x_0, x_{\lt k})`$ 采样。**因为这步天然串行，串行头必须极轻**（$`T_{\text{sequential}} \ll T_{\text{parallel}}`$），保证整体 draft 延迟仍由并行阶段主导。
 
 两种串行头实现：
 
@@ -386,11 +386,11 @@ c_k^* = 1 - \tfrac{1}{2} \|p_k^d - p_k^t\|_1
 >
 > **为什么要校准**：confidence head 输出的是 0–1 之间的分数，但神经网络天然倾向于"自我感觉良好"——实际只有 60% 把握的 token，它可能报出 90%。如果调度器直接拿这个虚高的分数去估算"这次能验几个 token"，就会系统性地高估，导致验太多、浪费 target 算力。
 >
-> **温度缩放在做什么**：把原始分数 $`c_k`$ 除以一个温度 $`T_k > 1`$（再过 sigmoid），让过高的置信度往下压，使"模型说 70% 的地方，经验接受率也真的在 70% 附近"。这是一个纯后处理步骤，**不重新训练模型，只在验证集上搜一个最优的缩放系数**。
+> **温度缩放在做什么**：把原始分数 $`c_k`$ 除以一个温度 $`T_k \gt  1`$（再过 sigmoid），让过高的置信度往下压，使"模型说 70% 的地方，经验接受率也真的在 70% 附近"。这是一个纯后处理步骤，**不重新训练模型，只在验证集上搜一个最优的缩放系数**。
 >
 > **为什么要逐位置从左到右标定**：第 $k$ 个 token 被接受的前提是前 $k-1$ 个都被接受（前缀规则），所以联合概率是 $`c_1 \times c_2 \times \cdots \times c_k`$ 的连乘。越靠后的位置，误差累积越严重。STS 的做法是：先标定位置 1 的温度，固定住，再标定位置 2，依次往后——保证每一步校准时，前面的乘积已经是准的，不会相互干扰。
 >
-> 每个位置各搜一个独立的温度标量 $`T_k`$，校准公式为 $`c_k^{\text{cal}} = \sigma(\text{logit}(c_k) / T_k)`$（$`T_k > 1`$ 时往下压）。以 $`\gamma=3`$ 为例，搜索过程如下：
+> 每个位置各搜一个独立的温度标量 $`T_k`$，校准公式为 $`c_k^{\text{cal}} = \sigma(\text{logit}(c_k) / T_k)`$（$`T_k \gt  1`$ 时往下压）。以 $`\gamma=3`$ 为例，搜索过程如下：
 > ```
 > 步骤1：搜 T₁
 >   枚举 T₁ 的候选值（如 1.0, 1.2, 1.5, ...）
