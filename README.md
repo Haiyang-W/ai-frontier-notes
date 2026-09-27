@@ -45,8 +45,6 @@
 | **[DeepSeek V4 解读](TechReport/Deepseek/DeepSeekV4.md)** | 注意力机制、MoE、Muon、低精度训练与蒸馏 |
 | **[DSpark 解读](TechReport/Deepseek/Dspark.md)** | 投机解码、半自回归生成与置信度调度 |
 
-<p align="right"><sub><a href="TechReport/">浏览目录 →</a> &nbsp;·&nbsp; <a href="#top">返回顶部 ↑</a></sub></p>
-
 <a name="agentic-rl"></a>
 
 ### 02 · Agentic RL
@@ -58,12 +56,8 @@
 | **[强化学习基础](AgenticRL/BasicRL.md)** | 策略梯度、PPO、GAE、KL 与 GRPO |
 | **[RL 训练经验与实践](AgenticRL/RLTrainExp.md)** | 训练稳定性、奖励设计、训推一致性与训练框架 |
 
-<p align="right"><sub><a href="AgenticRL/">浏览目录 →</a> &nbsp;·&nbsp; <a href="#top">返回顶部 ↑</a></sub></p>
-
 <a name="recursive-self-improvement"></a>
 
 ### 03 · Recursive Self-Improvement
 
 递归自我改进方向，笔记待补充。
-
-<p align="right"><sub><a href="#contents">返回导航 ↑</a> &nbsp;·&nbsp; <a href="#top">返回顶部 ↑</a></sub></p>
