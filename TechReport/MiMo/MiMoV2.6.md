@@ -340,13 +340,13 @@ Partial rollout 的不同片段可能由不同策略版本生成。MiMo 使用�
 
 ```math
 r_{i,t}
-=\operatorname{sg}\left[
+=\mathop{\mathrm{sg}}\nolimits\left[
 \frac{\pi_\theta(o_{i,t}\mid q,o_{i,\lt t})}
 {\mu_{\theta_{\mathrm{old}}}(o_{i,t}\mid q,o_{i,\lt t})}
 \right].
 ```
 
-分子是当前模型的概率，分母是该 token **生成当时保存的概率**；报告明确说不为 partial rollout 重新计算生成概率。不能用某个统一旧版本事后补算，否则会改变权重的含义。$`\operatorname{sg}`$ 表示停止梯度，ratio 只作权重，梯度经总目标的 log-probability 项传播。
+分子是当前模型的概率，分母是该 token **生成当时保存的概率**；报告明确说不为 partial rollout 重新计算生成概率。不能用某个统一旧版本事后补算，否则会改变权重的含义。$`\mathop{\mathrm{sg}}\nolimits`$ 表示停止梯度，ratio 只作权重，梯度经总目标的 log-probability 项传播。
 
 ### 3.4 正负更新分开控制：越界 token 直接屏蔽
 
@@ -507,7 +507,7 @@ Table 2 记录了实际轨迹中的几类行为：安装新版包并读取源码
 设成功集合为 $`\mathcal P_q`$、每题轨迹数为 $`G`$。当 $`\lvert\mathcal P_q\rvert/G\gt a_{\min}`$ 时，参考长度为：
 
 ```math
-\ell_q^\star=\operatorname{Quantile}_{B/100}
+\ell_q^\star=\mathop{\mathrm{Quantile}}\nolimits_{B/100}
 \{\ell_j:j\in\mathcal P_q\}.
 ```
 
@@ -516,7 +516,7 @@ Table 2 记录了实际轨迹中的几类行为：安装新版包并读取源码
 ```math
 \widetilde R_i=R_i-\mathbf{1}[i\in\mathcal P_q]X
 \left[
-\operatorname{clip}\left(
+\mathop{\mathrm{clip}}\nolimits\left(
 \frac{\ell_i/\ell_q^\star-1-\delta}{s-\delta},0,1
 \right)
 \right]^\gamma.
