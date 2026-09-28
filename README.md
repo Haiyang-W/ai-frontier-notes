@@ -70,5 +70,3 @@
 ### 03 · Recursive Self-Improvement
 
 递归自我改进方向，笔记待补充。
-
-[返回顶部](#top) · [最新更新](#news) · [内容导航](#contents)
