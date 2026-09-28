@@ -544,8 +544,8 @@ $`\ell_i`$ 是生成 token 数，$`B`$ 决定参考分位数；$`X`$ 是最大�
 
 ```math
 \widetilde A_{i,t}=\begin{cases}
-\alpha(1-h_{i,t})A_i,&A_i\gt0,\\
-[\beta(1-h_{i,t})+\kappa h_{i,t}]A_i,&A_i\lt0,\\
+\alpha(1-h_{i,t})A_i,&A_i\gt0,\\[0pt]
+[\beta(1-h_{i,t})+\kappa h_{i,t}]A_i,&A_i\lt0,\\[0pt]
 0,&A_i=0,
 \end{cases}
 \qquad \kappa\gt1.
