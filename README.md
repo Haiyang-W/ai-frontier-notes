@@ -18,12 +18,6 @@
   <a href="#recursive-self-improvement"><img src="https://img.shields.io/badge/Recursive_Self--Improvement-475569?style=flat-square" alt="跳转至递归自我改进" /></a>
 </p>
 
-<p>
-  <a href="#contents">内容导航</a> &nbsp;·&nbsp;
-  <a href="https://github.com/Haiyang-W/ai-frontier-notes/commits/main/">更新记录</a> &nbsp;·&nbsp;
-  <a href="https://github.com/Haiyang-W/ai-frontier-notes/issues">交流勘误</a>
-</p>
-
 </div>
 
 ---
