@@ -13,7 +13,6 @@
 <p><strong>从数学直觉，到训练实践与系统设计</strong></p>
 
 <p>
-  <a href="#news"><img src="https://img.shields.io/badge/News-DC2626?style=flat-square" alt="跳转至最新更新" /></a>
   <a href="#tech-reports"><img src="https://img.shields.io/badge/Frontier_Tech_Reports-2563EB?style=flat-square" alt="跳转至前沿技术报告" /></a>
   <a href="#agentic-rl"><img src="https://img.shields.io/badge/Agentic_RL-0F766E?style=flat-square" alt="跳转至 Agentic RL" /></a>
   <a href="#recursive-self-improvement"><img src="https://img.shields.io/badge/Recursive_Self--Improvement-475569?style=flat-square" alt="跳转至递归自我改进" /></a>
