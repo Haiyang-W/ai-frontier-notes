@@ -35,7 +35,9 @@
 
 ## 内容导航
 
-[前沿技术报告](#tech-reports) · [Agentic RL](#agentic-rl) · [递归自我改进](#recursive-self-improvement)
+- [前沿技术报告](#tech-reports)
+- [Agentic RL](#agentic-rl)
+- [递归自我改进](#recursive-self-improvement)
 
 <a name="tech-reports"></a>
 
