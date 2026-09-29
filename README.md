@@ -3,7 +3,7 @@
 <div align="center">
 
 <p>
-  <img src="assets/ai-frontier-banner-v2.png" width="100%" alt="AI 前沿学习笔记主题插画：展开的研究笔记、散落的论文与蜿蜒的蓝色路径，连接远山与探索之旅" />
+  <img src="assets/ai-frontier-banner-v4.png" width="100%" alt="持续学习、攀登 AGI 之巅：山脚摆放着展开的书与书堆，漫画风格的学习者怀抱书本，沿蜿蜒山路向标有 AGI 的顶峰攀登" />
 </p>
 
 <h1>AI 前沿学习笔记</h1>
