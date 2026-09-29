@@ -1,0 +1,200 @@
+{
+  "revision": "639865fd3374018d6cb29b9fb82dd531406fcf5f",
+  "audit_date": "2026-09-29",
+  "length_unit": "Unicode characters; no tokenizer; prompt concatenates message contents",
+  "domains": {
+    "code": {
+      "rows": 2698,
+      "prompt_chars": {
+        "n": 2698,
+        "min": 99,
+        "median": 1603.0,
+        "p90": 2671,
+        "max": 58653
+      },
+      "unique_prompts": 2698,
+      "sources": {
+        "opensource-code": 2698
+      },
+      "empty_ground_truth": 2698,
+      "reward_styles": {
+        "rule": 2698
+      }
+    },
+    "cyber": {
+      "rows": 1000,
+      "prompt_chars": {
+        "n": 1000,
+        "min": 77,
+        "median": 114.0,
+        "p90": 166,
+        "max": 428
+      },
+      "unique_prompts": 693,
+      "sources": {
+        "arvo": 1000
+      },
+      "empty_ground_truth": 1000,
+      "reward_styles": {
+        "rule": 1000
+      }
+    },
+    "general": {
+      "rows": 989,
+      "prompt_chars": {
+        "n": 989,
+        "min": 162,
+        "median": 1001,
+        "p90": 1649,
+        "max": 3136
+      },
+      "unique_prompts": 989,
+      "sources": {
+        "mimoagent/terminal_bench": 64,
+        "mimoagent/general_agent": 925
+      },
+      "empty_ground_truth": 989,
+      "reward_styles": {
+        "rule": 989
+      }
+    },
+    "webdev": {
+      "rows": 2093,
+      "prompt_chars": {
+        "n": 2093,
+        "min": 49,
+        "median": 825,
+        "p90": 3817,
+        "max": 12173
+      },
+      "unique_prompts": 2093,
+      "sources": {
+        "blackbox/webdev": 2093
+      },
+      "empty_ground_truth": 2093,
+      "reward_styles": {
+        "rule": 2093
+      }
+    },
+    "music": {
+      "rows": 1000,
+      "prompt_chars": {
+        "n": 1000,
+        "min": 141,
+        "median": 184.0,
+        "p90": 760,
+        "max": 825
+      },
+      "unique_prompts": 1000,
+      "sources": {
+        "music": 1000
+      },
+      "empty_ground_truth": 1000,
+      "reward_styles": {
+        "rule": 1000
+      }
+    }
+  },
+  "code_tests": {
+    "patch_chars": {
+      "n": 2698,
+      "min": 1182,
+      "median": 5373.0,
+      "p90": 13387,
+      "max": 891656
+    },
+    "per_task_ratio": {
+      "n": 2698,
+      "min": 0.05101422948834393,
+      "median": 3.719903237015851,
+      "p90": 9.119338605319914,
+      "max": 697.6964006259781
+    },
+    "longer_than_prompt": 2579,
+    "unique_images": 2698
+  },
+  "general_rubrics": {
+    "tasks": 925,
+    "rubric_text_fields": [
+      "question",
+      "pass_anchor",
+      "desc"
+    ],
+    "prompt_chars": {
+      "n": 925,
+      "min": 162,
+      "median": 905,
+      "p90": 1560,
+      "max": 2260
+    },
+    "rubric_chars": {
+      "n": 925,
+      "min": 194,
+      "median": 1597,
+      "p90": 3606,
+      "max": 6587
+    },
+    "per_task_ratio": {
+      "n": 925,
+      "min": 0.43653846153846154,
+      "median": 2.327220077220077,
+      "p90": 3.61455525606469,
+      "max": 6.301282051282051
+    },
+    "longer_than_prompt": 873,
+    "items_per_task": {
+      "n": 925,
+      "min": 2,
+      "median": 5,
+      "p90": 8,
+      "max": 10
+    },
+    "methods": {
+      "llm": 4437,
+      "rule": 688
+    },
+    "tiers": {
+      "critical": 2973,
+      "important": 1855,
+      "sanity": 297
+    },
+    "method_combinations": {
+      "llm": 695,
+      "llm+rule": 230
+    },
+    "tasks_with_gates": 0,
+    "tasks_with_check_code": 925
+  },
+  "music": {
+    "lang": {
+      "zh": 504,
+      "en": 496
+    },
+    "length": {
+      "short": 504,
+      "long": 496
+    },
+    "nvoice_want": {
+      "3": 177,
+      "2": 475,
+      "1": 34,
+      "5": 89,
+      "4": 202,
+      "6": 23
+    },
+    "meter": {
+      "4/4": 746,
+      "2/4": 57,
+      "3/4": 147,
+      "7/8": 12,
+      "6/8": 38
+    }
+  },
+  "cyber_identity": {
+    "unique_instance_ids": 1000,
+    "unique_images": 1000
+  },
+  "webdev_categories": {
+    "website": 2093
+  }
+}
