@@ -28,6 +28,7 @@
 
 ## News
 
+- **2026.10.01**：发布 **[RSI survey 与最新进展](Recursive-Self-Improvement/RSI-Survey.md)**，结合综述与 11 篇近期论文，梳理自主课程、系统演化、自主后训练与改进机制继承，比较局部收益和长期积累的证据。[原始综述](https://arxiv.org/abs/2609.11873)
 - **2026.09.30**：发布并更新 **[DeepSeek Elastic Compute（DSec）解读](TechReport/Deepseek/DeepSeekElasticCompute.md)**，分析环境分层、按需加载与资源管理，补充长轨迹恢复的边界、环境版本与采样偏差等 insight。[原始报告](https://arxiv.org/abs/2609.22978)
 - **2026.09.28**：发布 **[MiMo V2.6 技术报告解读](TechReport/MiMo/MiMoV2.6.md)**，梳理混合 RL、奖励与行为约束、训练系统及 MOPD2 蒸馏。[原始报告](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/blob/main/MiMo_V2_6_technical_report.pdf)
 - **2026.09.14**：发布 **[DeepSeek V4 解读](TechReport/Deepseek/DeepSeekV4.md)**，梳理注意力机制、MoE、Muon、低精度训练与蒸馏。
@@ -70,4 +71,12 @@
 
 ### 03 · Recursive Self-Improvement
 
-递归自我改进方向，笔记待补充。
+研究 AI 如何利用经验更新权重、工具、记忆和改进方法，并让后继系统继续学习。
+
+<div align="center">
+
+| 笔记 | 核心内容 |
+| :--- | :--- |
+| **[RSI survey 与最新进展](Recursive-Self-Improvement/RSI-Survey.md)** | 五层自主性框架、自主课程、agent 程序演化、自主后训练与改进机制继承；近期实验、验证风险与长期积累的边界 |
+
+</div>
