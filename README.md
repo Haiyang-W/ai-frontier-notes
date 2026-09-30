@@ -28,6 +28,7 @@
 
 ## News
 
+- **2026.09.30**：发布 **[DeepSeek Elastic Compute（DSec）解读](TechReport/Deepseek/DeepSeekElasticCompute.md)**，分析大规模 Agent 训练的沙箱基础设施、环境分层与按需加载、资源管理、轨迹恢复和奖励可信度。[原始报告](https://arxiv.org/abs/2609.22978)
 - **2026.09.28**：发布 **[MiMo V2.6 技术报告解读](TechReport/MiMo/MiMoV2.6.md)**，梳理混合 RL、奖励与行为约束、训练系统及 MOPD2 蒸馏。[原始报告](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/blob/main/MiMo_V2_6_technical_report.pdf)
 - **2026.09.14**：发布 **[DeepSeek V4 解读](TechReport/Deepseek/DeepSeekV4.md)**，梳理注意力机制、MoE、Muon、低精度训练与蒸馏。
 - **2026.09.14**：发布 **[DSpark 解读](TechReport/Deepseek/Dspark.md)**，分析投机解码、半自回归生成与置信度调度。
@@ -45,10 +46,11 @@
 
 ### 01 · 前沿技术报告
 
-拆解模型架构、训练策略与推理系统中的关键设计。
+拆解模型架构、训练策略、推理系统与 Agent 执行基础设施中的关键设计。
 
 | 笔记 | 核心内容 |
 | :--- | :--- |
+| **[DeepSeek Elastic Compute（DSec）解读](TechReport/Deepseek/DeepSeekElasticCompute.md)** | 环境分层、镜像按需加载、内存与 CPU 管理、轨迹恢复及奖励可信度 |
 | **[MiMo V2.6 解读](TechReport/MiMo/MiMoV2.6.md)** | 大规模混合 RL、质量评价、行为约束、训推一致性与 MOPD2 蒸馏 |
 | **[DeepSeek V4 解读](TechReport/Deepseek/DeepSeekV4.md)** | 注意力机制、MoE、Muon、低精度训练与蒸馏 |
 | **[DSpark 解读](TechReport/Deepseek/Dspark.md)** | 投机解码、半自回归生成与置信度调度 |
