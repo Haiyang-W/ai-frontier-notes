@@ -420,7 +420,7 @@ Absolute Zero Reasoner（AZR，Absolute Zero 推理模型）以已有基础模�
 ```math
 r_{\mathrm{propose}}=
 \begin{cases}
-0,&\bar r_{\mathrm{solve}}=0,\\
+0,&\bar r_{\mathrm{solve}}=0,\\[0pt]
 1-\bar r_{\mathrm{solve}},&\bar r_{\mathrm{solve}}\gt 0.
 \end{cases}
 ```
