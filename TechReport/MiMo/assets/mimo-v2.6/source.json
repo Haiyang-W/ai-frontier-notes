@@ -1,0 +1,114 @@
+{
+  "source_url": "https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/resolve/main/MiMo_V2_6_technical_report.pdf",
+  "source_sha256": "fb81e6e083801b3358f084ed6be953dc23b0d2e434690f4541d5eae03e01e7af",
+  "retrieved_on": "2026-09-30",
+  "render_dpi": 216,
+  "method": "PyMuPDF PDF page rendering with clip; original plots unchanged; English captions replaced by Chinese reading notes in the Markdown",
+  "figures": [
+    {
+      "figure": 3,
+      "pdf_page": 8,
+      "file": "figure-03-rl-cost-and-gains.png",
+      "clip_points": [
+        55,
+        78,
+        540,
+        300
+      ],
+      "pixels": [
+        1455,
+        666
+      ]
+    },
+    {
+      "figure": 7,
+      "pdf_page": 17,
+      "file": "figure-07-groupwise-grading.png",
+      "clip_points": [
+        55,
+        82,
+        540,
+        341
+      ],
+      "pixels": [
+        1455,
+        777
+      ]
+    },
+    {
+      "figure": 8,
+      "pdf_page": 19,
+      "file": "figure-08-gar-ablation.png",
+      "clip_points": [
+        55,
+        82,
+        540,
+        257
+      ],
+      "pixels": [
+        1455,
+        525
+      ]
+    },
+    {
+      "figure": 9,
+      "pdf_page": 22,
+      "file": "figure-09-scores-and-token-growth.png",
+      "clip_points": [
+        55,
+        80,
+        540,
+        344
+      ],
+      "pixels": [
+        1455,
+        792
+      ]
+    },
+    {
+      "figure": 11,
+      "pdf_page": 24,
+      "file": "figure-11-router-freezing.png",
+      "clip_points": [
+        55,
+        82,
+        540,
+        258
+      ],
+      "pixels": [
+        1455,
+        528
+      ]
+    },
+    {
+      "figure": 13,
+      "pdf_page": 25,
+      "file": "figure-13-mopd2.png",
+      "clip_points": [
+        55,
+        80,
+        540,
+        330
+      ],
+      "pixels": [
+        1455,
+        750
+      ]
+    },
+    {
+      "figure": 16,
+      "pdf_page": 31,
+      "file": "figure-16-sample-mixer.png",
+      "clip_points": [
+        55,
+        82,
+        540,
+        335
+      ],
+      "pixels": [
+        1455,
+        759
+      ]
+    }
+  ]
+}
