@@ -28,12 +28,12 @@
 
 ## News
 
-- **2026.10.02**：发布 **[Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](https://z.ai/blog/glm-built-its-inference-infrastructure)** 的[阅读笔记](TechReport/MiMo/GLM/GLMInferenceInfrastructure.md)，分析密集反馈如何支持 Infra Agent 定位数值误差、修复缓存传输并发瓶颈与优化算子，梳理工程师职责及递归自我改进的边界。
-- **2026.10.01**：发布 **[The Last AI Built by Humans: Toward Genuine Recursive Self-Improvement](Recursive-Self-Improvement/RSI-Survey.md)** 阅读笔记，解读综述的五层自主性框架、代表方法与产业案例，分析经验继承、元改进及其证据边界。[原始综述](https://arxiv.org/abs/2609.11873)
-- **2026.09.30**：发布并更新 **[DeepSeek Elastic Compute（DSec）解读](TechReport/Deepseek/DeepSeekElasticCompute.md)**，分析环境分层、按需加载与资源管理，补充长轨迹恢复的边界、环境版本与采样偏差等 insight。[原始报告](https://arxiv.org/abs/2609.22978)
-- **2026.09.28**：发布 **[MiMo V2.6 技术报告解读](TechReport/MiMo/MiMoV2.6.md)**，梳理混合 RL、奖励与行为约束、训练系统及 MOPD2 蒸馏。[原始报告](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/blob/main/MiMo_V2_6_technical_report.pdf)
-- **2026.09.14**：发布 **[DeepSeek V4 解读](TechReport/Deepseek/DeepSeekV4.md)**，梳理注意力机制、MoE、Muon、低精度训练与蒸馏。
-- **2026.09.14**：发布 **[DSpark 解读](TechReport/Deepseek/Dspark.md)**，分析投机解码、半自回归生成与置信度调度。
+- **2026.10.02**：发布 **[Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](https://z.ai/blog/glm-built-its-inference-infrastructure)** 的[阅读笔记](TechReport/MiMo/GLM/GLMInferenceInfrastructure.md)。
+- **2026.10.01**：发布 **[The Last AI Built by Humans: Toward Genuine Recursive Self-Improvement](Recursive-Self-Improvement/RSI-Survey.md)** 阅读笔记。[原始综述](https://arxiv.org/abs/2609.11873)
+- **2026.09.30**：发布并更新 **[DeepSeek Elastic Compute (DSec): A Sandbox Infrastructure for Effective Agentic Training at Scale](TechReport/Deepseek/DeepSeekElasticCompute.md)** 阅读笔记。[原始报告](https://arxiv.org/abs/2609.22978)
+- **2026.09.28**：发布 **[MiMo-V2.6: Scaling Reinforcement Learning Towards Self-Improvement](TechReport/MiMo/MiMoV2.6.md)** 阅读笔记。[原始报告](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/blob/main/MiMo_V2_6_technical_report.pdf)
+- **2026.09.14**：发布 **[DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence](TechReport/Deepseek/DeepSeekV4.md)**的阅读笔记。
+- **2026.09.14**：发布 **[DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation](TechReport/Deepseek/Dspark.md)**，分析投机解码、半自回归生成与置信度调度。
 - **2026.09.14**：发布 **[强化学习基础](AgenticRL/BasicRL.md)** 与 **[RL 训练经验与实践](AgenticRL/RLTrainExp.md)**，覆盖策略梯度、PPO、GAE、GRPO，以及训练稳定性、奖励设计和训推一致性。
 
 <a name="contents"></a>
