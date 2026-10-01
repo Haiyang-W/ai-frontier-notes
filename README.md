@@ -28,7 +28,7 @@
 
 ## News
 
-- **2026.10.02**：发布 **[Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](https://z.ai/blog/glm-built-its-inference-infrastructure)** 的[阅读笔记](TechReport/MiMo/GLM/GLMInferenceInfrastructure.md)。
+- **2026.10.02**：发布 **[Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](TechReport/MiMo/GLM/GLMInferenceInfrastructure.md)** 阅读笔记。[原始Blog](https://z.ai/blog/glm-built-its-inference-infrastructure)。·
 - **2026.10.01**：发布 **[The Last AI Built by Humans: Toward Genuine Recursive Self-Improvement](Recursive-Self-Improvement/RSI-Survey.md)** 阅读笔记。[原始综述](https://arxiv.org/abs/2609.11873)
 - **2026.09.30**：发布并更新 **[DeepSeek Elastic Compute (DSec): A Sandbox Infrastructure for Effective Agentic Training at Scale](TechReport/Deepseek/DeepSeekElasticCompute.md)** 阅读笔记。[原始报告](https://arxiv.org/abs/2609.22978)
 - **2026.09.28**：发布 **[MiMo-V2.6: Scaling Reinforcement Learning Towards Self-Improvement](TechReport/MiMo/MiMoV2.6.md)** 阅读笔记。[原始报告](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/blob/main/MiMo_V2_6_technical_report.pdf)
