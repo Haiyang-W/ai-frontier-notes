@@ -1,0 +1,70 @@
+{
+  "source_url": "https://z.ai/blog/glm-built-its-inference-infrastructure",
+  "source_title": "Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure",
+  "published_on": "2026-09-17",
+  "retrieved_on": "2026-10-01",
+  "source_type": "web blog; no PDF page numbers",
+  "content_bundle_url": "https://z.ai/blog/assets/glm-built-its-inference-infrastructure-qEyLd6aI.js",
+  "content_bundle_sha256": "befea9132dbadb9288f9c35647fe81acd9bb03948aeeae2d6e07b918eda7f91f",
+  "method": "Original PNGs downloaded from the blog CDN, unchanged; width-only sizing in Markdown preserves aspect ratios",
+  "figures": [
+    {
+      "figure": 1,
+      "source_url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/glm-built-its-inference-infrastructure/9320b3eb3643f41e835d43e49cd3ef83.png",
+      "file": "figure-01-throughput-evolution.png",
+      "pixels": [
+        2880,
+        1332
+      ],
+      "sha256": "e22767c6202224d194d0c1797b99de2e9fb6485fe61b83ad6d5aa7ad81bb00ab"
+    },
+    {
+      "figure": 2,
+      "source_url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/glm-built-its-inference-infrastructure/3b3b39fa219f9db6668ccd706f0fdf74.png",
+      "file": "figure-02-dense-feedback-loop.png",
+      "pixels": [
+        3240,
+        1692
+      ],
+      "sha256": "73c070a0701d8aae05dccfb99e410279220b90184a1ae40b7c6737a9e9361cf2"
+    },
+    {
+      "figure": 3,
+      "source_url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/glm-built-its-inference-infrastructure/2cec27beb00dab7b620063d74f97b87e.png",
+      "file": "figure-03-kv-transfer-concurrency.png",
+      "pixels": [
+        2880,
+        810
+      ],
+      "sha256": "32c80e1e9e912e884694fc812ac14247ea6dc06aefd0d0d788a799507ba49300"
+    },
+    {
+      "figure": 4,
+      "source_url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/glm-built-its-inference-infrastructure/c627ada930a6057a6a434c24d96b683e.png",
+      "file": "figure-04-kda-kernel-evolution.png",
+      "pixels": [
+        1620,
+        648
+      ],
+      "sha256": "3b1cbdfe9338bd888cbe2b5539c1692d846ede78479f54f6ad0c6c51ce28f857"
+    }
+  ],
+  "supplementary_sources": [
+    {
+      "url": "https://github.com/fla-org/flash-linear-attention/pull/1180",
+      "merged_at": "2026-08-27T09:49:15Z",
+      "merge_commit_sha": "81c015566edf4de0a6f95661c09f3de43949ec2b"
+    },
+    {
+      "url": "https://github.com/deepseek-ai/DeepEP/blob/v1.2.1/csrc/deep_ep.cpp",
+      "tag": "v1.2.1",
+      "retrieved_file_sha256": "de03cc5b5e2d05b3dc521ab1bfd419f3d94bfaa5385ee3c05e0052295a6e138d"
+    },
+    {
+      "url": "https://triton-lang.org/main/python-api/generated/triton.language.dot.html"
+    },
+    {
+      "url": "https://github.com/fla-org/flash-linear-attention#readme"
+    }
+  ]
+}

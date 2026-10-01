@@ -28,6 +28,7 @@
 
 ## News
 
+- **2026.10.02**：发布 **[GLM 推理基础设施解读](TechReport/MiMo/GLM/GLMInferenceInfrastructure.md)**，分析密集反馈如何支持 Infra Agent 定位数值误差、修复缓存传输并发瓶颈与优化算子，梳理工程师职责及递归自我改进的边界。[原始博客](https://z.ai/blog/glm-built-its-inference-infrastructure)
 - **2026.10.01**：发布 **[The Last AI Built by Humans: Toward Genuine Recursive Self-Improvement](Recursive-Self-Improvement/RSI-Survey.md)** 阅读笔记，解读综述的五层自主性框架、代表方法与产业案例，分析经验继承、元改进及其证据边界。[原始综述](https://arxiv.org/abs/2609.11873)
 - **2026.09.30**：发布并更新 **[DeepSeek Elastic Compute（DSec）解读](TechReport/Deepseek/DeepSeekElasticCompute.md)**，分析环境分层、按需加载与资源管理，补充长轨迹恢复的边界、环境版本与采样偏差等 insight。[原始报告](https://arxiv.org/abs/2609.22978)
 - **2026.09.28**：发布 **[MiMo V2.6 技术报告解读](TechReport/MiMo/MiMoV2.6.md)**，梳理混合 RL、奖励与行为约束、训练系统及 MOPD2 蒸馏。[原始报告](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL/blob/main/MiMo_V2_6_technical_report.pdf)
@@ -51,6 +52,7 @@
 
 | 笔记 | 核心内容 |
 | :--- | :--- |
+| **[GLM 推理基础设施解读](TechReport/MiMo/GLM/GLMInferenceInfrastructure.md)** | 密集反馈、数值精度与并发排查、算子优化、工程师职责与 RSI 边界 |
 | **[DeepSeek Elastic Compute（DSec）解读](TechReport/Deepseek/DeepSeekElasticCompute.md)** | 环境分层与按需加载、资源超配、长轨迹恢复、奖励可信度与采样偏差 |
 | **[MiMo V2.6 解读](TechReport/MiMo/MiMoV2.6.md)** | 大规模混合 RL、质量评价、行为约束、训推一致性与 MOPD2 蒸馏 |
 | **[DeepSeek V4 解读](TechReport/Deepseek/DeepSeekV4.md)** | 注意力机制、MoE、Muon、低精度训练与蒸馏 |
