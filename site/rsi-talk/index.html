@@ -1419,7 +1419,7 @@ html[data-theme="dark"] .policy-example { --policy-new: #ceade2; --policy-new-bg
 <li id="take-home-acceleration"><p><strong>爆炸尚未发生，但加速的门槛正在逼近。</strong> 完全自动化是理想情况；我的判断是，人机协作的智能爆炸会发生，而人可能仍贡献其中关键的“1%”——那一次灵光一闪。</p></li>
 <li id="take-home-infrastructure"><p><strong>当前更值得关注的是 RSI 系统的基础设施。</strong> 平台要代码化，让 Agent 能直接调用训练、推理、评测和环境服务，自主开展实验、验证想法，减少研究流程中的束缚。</p></li>
 <li id="take-home-discovery"><p><strong>Discovery loop 可能像思维链一样，成为困难任务必备的求解环节。</strong> 通过反复提出方案、验证和改进，它可能是一种有效的 test-time scaling 范式：无需大幅提升模型的单步能力，只用少量范式数据教会模型如何搜索，就可能显著提高困难任务的成功率。值得注意的是，思维链有推理强度（thinking effort），RSI 也有对应的探索强度（exploration effort）。</p></li>
-<li id="take-home-search"><p><strong>Dream-RSI 提供了更高效的搜索思路：增量探索、缓存历史、迭代策略。</strong> 相较于从头生成独立轨迹的朴素搜索，这种方式似乎更值得用于 RL 的探索过程；它与完整 RL 方法的效果比较，仍有待验证。</p></li>
+<li id="take-home-search"><p><strong>Dream-RSI 提供了更高效的搜索思路：增量探索、缓存历史、迭代策略。</strong> 相较于从头生成独立轨迹的朴素搜索，这种方式似乎更值得用于 RL 的探索过程；它与 GRPO 等经典 RL 方法的效果比较，仍有待验证。</p></li>
 <li id="take-home-data-production"><p><strong>RL 可以承担数据生产，而不必主要用于大规模训练。</strong> 先用 RSI 搜索解法，再剪去冗余分支，只保留必要的探索，形成学习数据。进一步的猜想是：在保持成功率的前提下，模型能提前剪去多少无效探索，或许可以衡量其智力程度。</p></li>
 <li id="take-home-environment-entropy"><p><strong>没有更强模型参与时，面向数据的 RSI 可以部分理解为数据增强（data augmentation）。</strong> 但这种增强的收益有多大，还不好说：我们尚不清楚，围绕一个 query 的 rollout 究竟能从环境中提取多少有效信息，或者说，能“置换”出多少环境中的熵。</p></li>
 </ol></blockquote></section>
