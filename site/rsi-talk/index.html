@@ -893,7 +893,7 @@ html[data-theme="dark"] .policy-example { --policy-new: #ceade2; --policy-new-bg
 <button id="reading-toggle" type="button" aria-label="切换大字模式" aria-pressed="false"><span data-reading-label>大字</span></button>
 <a href="#toc">目录</a></nav></div></header>
 <div class="page-layout"><aside class="article-sidebar"><nav id="toc" class="toc" aria-label="本文目录"><p class="toc-title">本文目录</p><ol><li><a href="#intelligence-explosion"><span class="toc-label">1. What if automating AI R&D triggers an intelligence explosion?</span></a><ol class="toc-subsections"><li><a href="#feedback-loop">1.1 什么是软件驱动的智能爆炸</a></li><li><a href="#research-returns">1.2 闭环已经在转：数据支撑</a></li><li><a href="#validation-bottleneck">1.3 决定人类命运的字母 r</a></li><li><a href="#seventeen-months">1.4 为什么爆炸还没来</a></li><li><a href="#intelligence-take-home">1.5 Take Home Message</a></li></ol></li><li><a href="#rsigym"><span class="toc-label">2. RSIGym A Flexible Environment for Recursive Self-Improvement
-</span></a><ol class="toc-subsections"><li><a href="#research-roles">2.1 任务设置</a></li><li><a href="#research-infrastructure">2.2 Everything as a Service</a></li><li><a href="#budget-permissions">2.3 成本与权限控制</a></li></ol></li><li><a href="#dream-rsi"><span class="toc-label">3. Dream-RSI: Recursive Self-Improvement through Evolving Worlds</span></a><ol class="toc-subsections"><li><a href="#search-policy">3.1 Discovery loop 与探索策略</a></li><li><a href="#search-harness">3.2 Exploration 作为 harness的一部分，在 test time 基于历史演进</a></li><li><a href="#search-efficiency">3.3 实验结果</a></li></ol></li><li><a href="#envharness"><span class="toc-label">4. EnvHarness: Awakening Static Worlds for Agent Learning</span></a><ol class="toc-subsections"><li><a href="#environment-challenges">4.1 环境构造成本高，建成后难以适应能力变化</a></li><li><a href="#environment-components">4.2 Stage、Contract、Chain：环境侧的三个模块</a></li><li><a href="#environment-design">4.3 EnvRigger 根据当前行为设计并验证环境修改</a></li><li><a href="#environment-results">4.4 实验结果展示</a></li></ol></li></ol></nav></aside>
+</span></a><ol class="toc-subsections"><li><a href="#research-roles">2.1 任务设置</a></li><li><a href="#research-infrastructure">2.2 Everything as a Service</a></li><li><a href="#budget-permissions">2.3 成本与权限控制</a></li></ol></li><li><a href="#dream-rsi"><span class="toc-label">3. Dream-RSI: Recursive Self-Improvement through Evolving Worlds</span></a><ol class="toc-subsections"><li><a href="#search-policy">3.1 Discovery loop 与探索策略</a></li><li><a href="#search-harness">3.2 Exploration 作为 harness的一部分，在 test time 基于历史演进</a></li><li><a href="#search-efficiency">3.3 实验结果</a></li></ol></li><li><a href="#envharness"><span class="toc-label">4. EnvHarness: Awakening Static Worlds for Agent Learning</span></a><ol class="toc-subsections"><li><a href="#environment-challenges">4.1 环境构造成本高，建成后难以适应能力变化</a></li><li><a href="#environment-components">4.2 Stage、Contract、Chain：环境侧的三个模块</a></li><li><a href="#environment-design">4.3 EnvRigger 根据当前行为设计并验证环境修改</a></li><li><a href="#environment-results">4.4 实验结果展示</a></li></ol></li><li><a href="#take-home-message"><span class="toc-label">5. Take Home Message</span></a><ol class="toc-subsections"><li><a href="#take-home-acceleration">5.1 爆炸尚未发生，但加速的门槛正在逼近</a></li><li><a href="#take-home-infrastructure">5.2 平台代码化，让 Agent 能直接开展研究</a></li><li><a href="#take-home-discovery">5.3 Discovery loop 可能成为困难任务的基本求解范式</a></li><li><a href="#take-home-search">5.4 把探索策略纳入优化，并复用已有搜索</a></li><li><a href="#take-home-data-production">5.5 将 RL 用于数据生产，再压缩搜索经验</a></li><li><a href="#take-home-environment-entropy">5.6 环境数据增强的上限，取决于能提取多少有效经验</a></li></ol></li></ol></nav></aside>
 <main id="main" class="main"><article class="post-content">
 <header class="post-header"><h1>What if automating AI R&amp;D triggers an intelligence explosion?</h1><p class="subtitle">递归自我改进近期论文分享（9–10 月）</p><p class="post-meta">2026 年 10 月 · 汪海洋</p></header>
 <div class="paper-overview"><p>本次分享依次介绍以下四篇论文：</p><ol><li><a href="#intelligence-explosion">What if automating AI R&amp;D triggers an intelligence explosion?</a><span class="paper-details"><time class="paper-date" datetime="2026-09-28">2026-09-28</time> · Geoffrey Hinton、Yoshua Bengio、Andrew Barto（三位图灵奖得主），Jakub Pachocki（OpenAI 首席科学家），Jack Clark（Anthropic 联合创始人）等</span><span class="paper-summary">自动化 AI R&D 与智能爆炸</span></li><li><a href="#rsigym">RSIGym: A Flexible Environment for Recursive Self-Improvement</a><span class="paper-details"><time class="paper-date" datetime="2026-10-07">2026-10-07</time> · Evolvent AI</span><span class="paper-summary">闭环 RSI 系统构建与Infra</span></li><li><a href="#dream-rsi">Dream-RSI: Recursive Self-Improvement through Evolving Worlds</a><span class="paper-details"><time class="paper-date" datetime="2026-10-06">2026-10-06</time> · Google</span><span class="paper-summary">RSI系统的加速</span></li><li><a href="#envharness">EnvHarness: Awakening Static Worlds for Agent Learning</a><span class="paper-details"><time class="paper-date" datetime="2026-08-20">2026-08-20</time> · Google</span><span class="paper-summary">RSI 迭代数据</span></li></ol></div>
@@ -1409,6 +1409,36 @@ html[data-theme="dark"] .policy-example { --policy-new: #ceade2; --policy-new-bg
 <p class="source-note">上述 SWE-bench 成绩使用剔除 Lite 重叠任务后的 407 个 Verified 问题，数值按原文 Table 3 与 §5 列示。</p>
 <p class="source-note">来源：<a href="https://arxiv.org/pdf/2608.19880v1#page=8" target="_blank" rel="noopener">EnvHarness · Figure 1 · p.1；§4.1 · p.8；Table 3 · p.9；§5、Figure 5 · p.11；Table 7 · p.25</a>。</p></section>
 
+<section id="take-home-message" class="chapter-section"><h2>5. Take Home Message</h2><h3 id="take-home-acceleration">5.1 爆炸尚未发生，但加速的门槛正在逼近</h3>
+<p>完全自动化是分析递归加速的一种理想情况，现实中的研发闭环可以先由人和 AI 一起完成。AI 承担大规模尝试、实现与验证，人提供问题选择、关键判断，以及改变研究方向的那一次灵光一闪；这些突破又可以进入下一轮自动化研究。</p>
+<blockquote class="insight"><p><strong>我的判断是：人机协作将带来智能爆炸，人可能仍扮演其中关键的“1%”。</strong> 这里的“1%”是对少量但关键的人类贡献的比喻，并非实测比例。真正需要关注的是，这些贡献能否被大量 AI 实验放大，并持续转化为下一轮的研究能力。</p></blockquote>
+<p>这是我对未来的判断。论文支持的是加速的可能性，尚未证明其必然发生；如果关键决策始终需要人逐次完成，人的时间也可能成为瓶颈。加速何时出现、能持续多久，仍取决于研究收益与算力、数据和实验周期之间的关系。</p>
+<p class="source-note">依据：<a href="https://arxiv.org/pdf/2609.36054v1#page=4" target="_blank" rel="noopener">Intelligence Explosion · pp.4–5、12–14</a>。</p>
+
+<h3 id="take-home-infrastructure">5.2 平台代码化，让 Agent 能直接开展研究</h3>
+<p><strong>递归自我改进（Recursive Self-Improvement，RSI）需要把上一轮的改进带入下一轮，而当前首先要解决的是让这套研究流程运行起来。</strong> 训练、推理、评测、环境操作和实验记录都应成为 Agent 能直接调用的代码接口，让它自行提出方案、启动实验、检查失败并继续迭代。</p>
+<p>RSIGym 的启发是把基础设施（infrastructure，infra）建设成共享服务：Agent 无需反复搭建训练与部署流程，也不必等待人手动搬运结果。这里“解开束缚”意味着扩大它可以自主完成的实验范围，同时用统一的预算、权限和日志管理这些实验。<strong>平台应让研究想法更快变成可验证的实验。</strong></p>
+<p class="source-note">依据：<a href="https://arxiv.org/pdf/2610.10310v1#page=5" target="_blank" rel="noopener">RSIGym · §§3.2–3.4 · pp.5–7</a>。</p>
+
+<h3 id="take-home-discovery">5.3 Discovery loop 可能成为困难任务的基本求解范式</h3>
+<p><strong>我的一个猜想是：发现循环（discovery loop）会像思维链（Chain of Thought，CoT）一样，成为解决困难任务不可缺少的一环。</strong> 思维链允许模型用多步推理求解；发现循环则把“提出候选、执行验证、根据反馈修改”组织成多轮搜索，在推理时投入更多计算来提高成功率，即测试时计算扩展（test-time scaling）。当改进进一步作用于后续搜索方法时，它也可以构成 RSI 的一部分。</p>
+<p>这意味着，困难任务的突破可能不必完全依赖单步模型能力的大幅提升。模型已经能提出部分正确的想法时，可靠反馈与合理的搜索组织就可能让这些能力积累成完整解法。进一步的假设是，<strong>少量展示如何探索、验证和纠错的“范式数据”，可能足以教会模型更有效地使用已有能力</strong>，从而大幅提高困难任务的成功率。Dream-RSI 展示了固定模型下优化搜索的价值，但没有验证这一少量数据假设。</p>
+
+<h3 id="take-home-search">5.4 把探索策略纳入优化，并复用已有搜索</h3>
+<p><strong>Dream-RSI 最值得借鉴的是：搜索如何继续，也可以成为被改进的对象。</strong> 真实搜索保存工作区、候选程序与评测结果，可以从当前叶节点继续，也可以开启新方向；历史回放则复用已记录的结果，低成本比较不同的分支选择、停止规则与并行安排。</p>
+<p>相对于每次从头生成独立轨迹、按固定预算探索的做法，这提供了一条更高效的研究路径：保存有效进展，减少重复执行，把预算投向仍有价值的尝试。我倾向于把它看作强化学习（Reinforcement Learning，RL）中搜索与采样模块值得借鉴的方向。不过，论文比较的是发现任务中的固定探索基线，没有与完整 RL 方法直接对照；回放也只能利用历史中已有的结果，仍需要真实搜索发现新路径。</p>
+<p class="source-note">依据：<a href="https://arxiv.org/pdf/2609.14858v2#page=4" target="_blank" rel="noopener">Dream-RSI · §§3–5 · pp.4–10</a>。</p>
+
+<h3 id="take-home-data-production">5.5 将 RL 用于数据生产，再压缩搜索经验</h3>
+<p><strong>一个值得尝试的方向是：把 RL 流程中的探索与反馈机制用作数据生产模块，再用较小规模的训练吸收搜索成果。</strong> 可以先用 RSI 搜索并验证解法，再删去重复尝试与无效分支，保留必要的探索、纠错和验证过程，形成可供学习的轨迹。搜索负责发现，后续训练负责把已经找到的有效方法变成模型更容易直接调用的能力。这是一种待验证的组合方案，并非四篇论文已经实现的完整链路。</p>
+<p>由此还可以提出一个衡量能力的猜想：<strong>在相同任务、起点和成功率要求下，模型能提前省去多少无效探索，或许能反映它掌握了多少求解规律。</strong> “剪枝比例”可以成为候选指标，但要区分事后压缩与事前判断：知道答案后删掉失败分支很容易，真正体现能力的是，在未知结果时就能少走弯路。剪枝后的轨迹也需要重新验证，避免删掉建立正确状态或得出结论所必需的步骤。</p>
+
+<h3 id="take-home-environment-entropy">5.6 环境数据增强的上限，取决于能提取多少有效经验</h3>
+<p><strong>在没有更强模型提供示范的情况下，面向数据的 RSI 可以部分理解为数据增强（data augmentation，DA）。</strong> EnvHarness 通过改变任务起点、交互规则和任务组合，让同一个模型暴露出不同的失败方式，再从新交互中学习。即使没有更强的教师，环境执行与原有验证器仍能提供模型独自生成文本时缺少的反馈。</p>
+<p>但这种增强能带来多大收益，尚不清楚。值得研究的问题是：<strong>围绕一个问题（query）反复生成交互轨迹（rollout），究竟能从环境中提取多少新的、可学习的信息？</strong> 也可以借用“熵”的语言，问一次 rollout 能置换出多少环境中的不确定性。这里的“环境熵”还只是研究直觉，没有明确的概率分布和测量口径：轨迹更多、变化更多，都不必然意味着新增的有效信息更多。</p>
+<p>因此，环境规模规律需要同时考察环境数量、交互成本，以及这些经验在新任务上的收益。EnvHarness 在所测规模内给出了积极结果；这些收益能否持续，以及何时开始重复消耗同一批信息，仍是开放问题。</p>
+<p class="source-note">依据：<a href="https://arxiv.org/pdf/2608.19880v1#page=8" target="_blank" rel="noopener">EnvHarness · §§4–5 · pp.8–11；Appendix H · p.41</a>。</p>
+</section>
 <footer class="article-footer"><a href="#toc">分享大纲</a><a href="#top">回到顶部</a></footer>
 </article></main></div>
 <footer class="site-footer">Haiyang’s Notes · 关于 AI 的阅读、学习与思考</footer>
