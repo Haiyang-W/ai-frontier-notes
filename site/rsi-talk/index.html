@@ -952,12 +952,10 @@ html[data-theme="dark"] .policy-example { --policy-new: #ceade2; --policy-new-bg
 <section id="rsigym" class="chapter-section"><h2>2. RSIGym: A Flexible Environment for Recursive Self-Improvement</h2>
 <p><strong>RSIGym 将训练、推理、轨迹生成、评测和沙箱执行封装为可复用代码服务</strong>，让研究智能体在统一的预算与权限控制下开展实验。平台支持 <strong>Data、Harness 和 Joint</strong> 三条改进路线：既可单独优化训练数据或执行框架，也可联合优化数据、训练配置与执行框架，在同一环境中完成提出修改、运行实验、评估结果的研究闭环。</p>
 <h3 id="research-roles">2.1 Problem Setting</h3>
-<blockquote class="insight">
 <p><strong>研究智能体通过实验，改进由模型与执行框架（harness）组成的目标系统。</strong>任务给定初始系统、评测规则、修改权限和服务预算，要求智能体在这些约束内提高评测得分。</p>
 <p>智能体在权限范围内调整训练数据、训练配置或框架代码，经多轮实验选出最佳方案，提交模型 checkpoint 标识和框架代码包。</p>
 <p class="research-equation" style="text-align:center; overflow-x:auto; padding:12px 0; font-family:Georgia,serif; font-size:1.12em;">(<i>M</i><sup>⋆</sup>, <i>h</i><sup>⋆</sup>) = π(<i>M</i><sub>0</sub>, <i>h</i><sub>0</sub>, ℰ; 𝒫, ℬ<sub>total</sub>)</p>
 <p>π 表示上述研究过程；(<i>M</i><sub>0</sub>, <i>h</i><sub>0</sub>) 是初始系统，ℰ 是评测规则，𝒫 是修改权限，ℬ<sub>total</sub> 是总预算；(<i>M</i><sup>⋆</sup>, <i>h</i><sup>⋆</sup>) 是最终系统。仅优化框架时，模型不变，即 <i>M</i><sup>⋆</sup> = <i>M</i><sub>0</sub>。</p>
-</blockquote>
 <p class="source-note">来源：<a href="https://arxiv.org/pdf/2610.10310#page=4" target="_blank" rel="noopener">RSIGym · §3.1 Problem Definition · pp.4–5</a>。</p>
 <h3 id="research-infrastructure">2.2 Everything as a Service</h3>
 <blockquote class="insight"><p><strong>研究智能体负责实验决策，平台把实验所需的基础设施做成可调用的代码服务（平台代码化）。</strong>智能体在轻量 CPU 容器中管理代码、数据和笔记，通过接口调用远端算力，无需自行搭建训练、模型部署与评测环境。</p></blockquote>
