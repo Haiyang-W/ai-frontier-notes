@@ -1412,7 +1412,7 @@ html[data-theme="dark"] .policy-example { --policy-new: #ceade2; --policy-new-bg
 <p class="source-note">来源：<a href="https://arxiv.org/pdf/2608.19880v1#page=8" target="_blank" rel="noopener">EnvHarness · Figure 1 · p.1；§4.1 · p.8；Table 3 · p.9；§5、Figure 5 · p.11；Table 7 · p.25</a>。</p></section>
 
 <section id="take-home-message" class="chapter-section"><h2>5. Take Home Message</h2><blockquote class="insight take-home-summary"><ol>
-<li id="take-home-acceleration"><p><strong>爆炸尚未发生，但加速的门槛正在逼近。</strong> 完全自动化是理想情况；人机协作的智能爆炸会发生，而人可能仍贡献其中关键的“1%”——那一次灵光一闪。</p></li>
+<li id="take-home-acceleration"><p><strong>爆炸尚未发生，但加速的门槛正在逼近。</strong> 完全自动化是理想情况；人机协作的智能爆炸会发生，而人可能仍贡献其中关键的“1%”——那一次灵光一闪。类比来看，现在的 RSI 大概相当于 2015 年的深度学习：核心论证成立、demo 惊艳、基础设施刚起步，但规模化后是否涌现质变仍待验证。最关键的未解问题是：自改进的增益是收敛的（环境信息有限，挖完就没了），还是发散的（正反馈引爆）？</p></li>
 <li id="take-home-infrastructure"><p><strong>当前更值得关注的是 RSI 系统的基础设施。</strong> 平台要代码化，让 Agent 能直接调用训练、推理、评测和环境服务，自主开展实验、验证想法，减少研究流程中的束缚。</p></li>
 <li id="take-home-discovery"><p><strong>Discovery loop 可能像思维链一样，成为困难任务必备的求解环节。</strong> 通过反复提出方案、验证和改进，它可能是一种有效的 test-time scaling 范式：无需大幅提升模型的单步能力，只用少量范式数据教会模型如何搜索，就可能显著提高困难任务的成功率。值得注意的是，思维链有推理强度（thinking effort），RSI 也有对应的探索强度（exploration effort）。</p></li>
 <li id="take-home-search"><p><strong>Dream-RSI 提供了更高效的搜索思路：增量探索、缓存历史、迭代策略。</strong> 相较于从头生成独立轨迹的朴素搜索，这种方式似乎更值得用于 RL 的探索过程；它与 GRPO 等经典 RL 方法的效果比较，仍有待验证。</p></li>
