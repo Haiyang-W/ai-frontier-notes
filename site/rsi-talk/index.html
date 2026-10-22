@@ -1418,6 +1418,7 @@ html[data-theme="dark"] .policy-example { --policy-new: #ceade2; --policy-new-bg
 <li id="take-home-search"><p><strong>Dream-RSI 提供了更高效的搜索思路：增量探索、缓存历史、迭代策略。</strong> 相较于从头生成独立轨迹的朴素搜索，这种方式似乎更值得用于 RL 的探索过程；它与 GRPO 等经典 RL 方法的效果比较，仍有待验证。</p></li>
 <li id="take-home-data-production"><p><strong>RL 可以承担数据生产，而不一定用于大规模训练。</strong> 先用 RSI 搜索解法，再由研究员剪去不必要的探索，将精简后的轨迹用于训练。RL 对应 On-policy。</p></li>
 <li id="take-home-environment-entropy"><p><strong>没有更强模型参与时，面向数据的 RSI 可以部分类比成数据增强（data augmentation）。</strong> 但这种增强的收益有多大，还不好说：我们尚不清楚，围绕一个 query 的 rollout 究竟能从环境中提取多少有效信息，或者说，能“置换”出多少环境中的熵。</p></li>
+<li id="take-home-reward-hacking"><p><strong>Reward Hacking 要重点关注。</strong></p></li>
 </ol></blockquote></section>
 <footer class="article-footer"><a href="#toc">分享大纲</a><a href="#top">回到顶部</a></footer>
 </article></main></div>
